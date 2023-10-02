@@ -1,0 +1,4 @@
+wyoming==1.1.0
+
+ctranslate2>=3.17,<4
+tokenizers==0.13.*

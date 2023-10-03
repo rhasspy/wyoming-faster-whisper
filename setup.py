@@ -18,7 +18,7 @@ setup(
     name="wyoming_faster_whisper",
     version="1.0.2",
     description="Wyoming Server for Faster Whisper",
-    url="http://github.com/rhasspy/rhasspy3",
+    url="http://github.com/rhasspy/wyoming-faster-whisper",
     author="Michael Hansen",
     author_email="mike@rhasspy.org",
     license="MIT",

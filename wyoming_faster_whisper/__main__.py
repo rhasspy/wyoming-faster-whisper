@@ -64,6 +64,7 @@ async def main() -> None:
         args.download_dir = args.data_dir[0]
 
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
+    _LOGGER.debug(args)
 
     # Look for model
     model = FasterWhisperModel(args.model)

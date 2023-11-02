@@ -27,6 +27,11 @@ Run a server anyone can connect to:
 ```sh
 script/run --model tiny-int8 --language en --uri 'tcp://0.0.0.0:10300' --data-dir /data --download-dir /data
 ```
+Run with any huggingface model:
+```sh
+script/run --model "distil-whisper/distil-medium.en" --language en --uri 'tcp://0.0.0.0:10300' --data-dir ./data -
+-download-dir ./data
+```
 
 ## Docker Image
 

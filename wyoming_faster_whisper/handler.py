@@ -9,7 +9,7 @@ from wyoming.event import Event
 from wyoming.info import Describe, Info
 from wyoming.server import AsyncEventHandler
 
-from .faster_whisper import WhisperModel
+from .faster_whisper import ASRModel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         self,
         wyoming_info: Info,
         cli_args: argparse.Namespace,
-        model: WhisperModel,
+        model: ASRModel,
         model_lock: asyncio.Lock,
         *args,
         **kwargs,

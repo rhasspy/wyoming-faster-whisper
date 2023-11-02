@@ -1,6 +1,7 @@
 import collections
 import os
 import zlib
+from typing import Generator, Protocol, Tuple
 
 import ctranslate2
 import numpy as np
@@ -37,7 +38,59 @@ class TranscriptionOptions(
     pass
 
 
-class WhisperModel:
+class ASRModel(Protocol):
+    def transcribe(
+        self, audio_bytes: bytes, language=None, beam_size=5, *kwargs
+    ) -> Tuple[Generator[Segment, None, None], AudioInfo]:
+        ...
+
+
+class HuggingFaceModel(ASRModel):
+    def __init__(
+        self,
+        model_url: str,
+        device: str = "auto",
+        compute_type: str = "default",
+        cpu_threads: int = 0,
+    ) -> None:
+        import torch
+        from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+
+        model_id = model_url
+
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(
+            model_id,
+            torch_dtype=torch_dtype,
+            low_cpu_mem_usage=True,
+            use_safetensors=True,
+        )
+        model.to(device)
+
+        processor = AutoProcessor.from_pretrained(model_id)
+
+        self.pipe = pipeline(
+            "automatic-speech-recognition",
+            model=model,
+            tokenizer=processor.tokenizer,
+            feature_extractor=processor.feature_extractor,
+            max_new_tokens=128,
+            torch_dtype=torch_dtype,
+            device=device,
+        )
+
+    def transcribe(self, audio_bytes, beam_size, language, *kwargs):
+        result = self.pipe(np.frombuffer(audio_bytes, dtype=np.int16))
+
+        def _gen():
+            yield Segment(start=0, end=1, text=result["text"])  # type: ignore
+
+        return _gen(), AudioInfo(language=language, language_probability=1.0)
+
+
+class WhisperModel(ASRModel):
     def __init__(
         self,
         model_path,
@@ -89,7 +142,7 @@ class WhisperModel:
         log_prob_threshold=-1.0,
         no_speech_threshold=0.6,
         condition_on_previous_text=True,
-    ):
+    ) -> Tuple[Generator[Segment, None, None], AudioInfo]:
         """Transcribes an input file.
 
         Arguments:

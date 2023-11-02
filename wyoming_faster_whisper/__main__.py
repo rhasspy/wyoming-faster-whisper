@@ -11,7 +11,7 @@ from wyoming.server import AsyncServer
 
 from .const import WHISPER_LANGUAGES
 from .download import FasterWhisperModel, download_model, find_model
-from .faster_whisper import WhisperModel
+from .faster_whisper import HuggingFaceModel, WhisperModel
 from .handler import FasterWhisperEventHandler
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ async def main() -> None:
     parser.add_argument(
         "--model",
         required=True,
-        choices=list(v.value for v in FasterWhisperModel),
+        type=str,
         help="Name of faster-whisper model to use",
     )
     parser.add_argument("--uri", required=True, help="unix:// or tcp://")
@@ -67,20 +67,42 @@ async def main() -> None:
     _LOGGER.debug(args)
 
     # Look for model
-    model = FasterWhisperModel(args.model)
-    model_dir: Optional[Path] = None
-    for data_dir in args.data_dir:
-        model_dir = find_model(model, data_dir)
-        if model_dir is not None:
-            break
+    try:
+        model = FasterWhisperModel(args.model)
+        model_dir: Optional[Path] = None
+        for data_dir in args.data_dir:
+            model_dir = find_model(model, data_dir)
+            if model_dir is not None:
+                break
 
-    if model_dir is None:
-        _LOGGER.info("Downloading %s to %s", model, args.download_dir)
-        model_dir = download_model(model, args.download_dir)
+        if model_dir is None:
+            _LOGGER.info("Downloading %s to %s", model, args.download_dir)
+            model_dir = download_model(model, args.download_dir)
 
-    if args.language == "auto":
-        # Whisper does not understand "auto"
-        args.language = None
+        if args.language == "auto":
+            # Whisper does not understand "auto"
+            args.language = None
+
+        # Load converted faster-whisper model
+        _LOGGER.debug("Loading %s", args.model)
+        whisper_model = WhisperModel(
+            str(model_dir),
+            device=args.device,
+            compute_type=args.compute_type,
+        )
+    except ValueError as e:
+        _LOGGER.info("Loading %s from HuggingFace", args.model)
+
+        class _Dummy:
+            def __init__(self, value):
+                self.value = value
+
+        model = _Dummy(args.model)
+        whisper_model = HuggingFaceModel(
+            str(args.model),
+            device=args.device,
+            compute_type=args.compute_type,
+        )
 
     wyoming_info = Info(
         asr=[
@@ -106,14 +128,6 @@ async def main() -> None:
                 ],
             )
         ],
-    )
-
-    # Load converted faster-whisper model
-    _LOGGER.debug("Loading %s", model_dir)
-    whisper_model = WhisperModel(
-        str(model_dir),
-        device=args.device,
-        compute_type=args.compute_type,
     )
 
     server = AsyncServer.from_uri(args.uri)

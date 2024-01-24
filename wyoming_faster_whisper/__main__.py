@@ -78,10 +78,6 @@ async def main() -> None:
     )
     _LOGGER.debug(args)
 
-    if args.version:
-        print(__version__)
-        return
-
     # Look for model
     model = FasterWhisperModel(args.model)
     model_dir: Optional[Path] = None

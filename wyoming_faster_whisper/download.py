@@ -86,7 +86,7 @@ def download_model(model: FasterWhisperModel, dest_dir: Union[str, Path]) -> Pat
 
     dest_dir.mkdir(parents=True, exist_ok=True)
 
-    model_url = URL_FORMAT.format(model=model)
+    model_url = URL_FORMAT.format(model=FasterWhisperModel(model).value)
     with urlopen(model_url) as response:
         with tarfile.open(mode="r|*", fileobj=response) as tar_gz:
             tar_gz.extractall(dest_dir)
@@ -97,7 +97,7 @@ def download_model(model: FasterWhisperModel, dest_dir: Union[str, Path]) -> Pat
 def find_model(model: FasterWhisperModel, dest_dir: Union[str, Path]) -> Optional[Path]:
     """Returns model directory if model exists."""
     dest_dir = Path(dest_dir)
-    model_dir = dest_dir / model.value
+    model_dir = dest_dir / FasterWhisperModel(model).value
 
     expected_hash = EXPECTED_HASHES.get(model)
     if expected_hash is None:

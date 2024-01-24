@@ -14,3 +14,4 @@ htmlcov
 __pycache__/
 
 /dist/
+/local/

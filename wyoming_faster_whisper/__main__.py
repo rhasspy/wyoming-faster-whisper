@@ -9,6 +9,7 @@ from typing import Optional
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
 from wyoming.server import AsyncServer
 
+from . import __version__
 from .const import WHISPER_LANGUAGES
 from .download import FasterWhisperModel, download_model, find_model
 from .faster_whisper import WhisperModel
@@ -57,14 +58,24 @@ async def main() -> None:
         default=5,
     )
     parser.add_argument("--debug", action="store_true", help="Log DEBUG messages")
+    parser.add_argument(
+        "--log-format", default=logging.BASIC_FORMAT, help="Format for log messages"
+    )
+    parser.add_argument("--version", action="store_true", help="Print version and exit")
     args = parser.parse_args()
 
     if not args.download_dir:
         # Download to first data dir by default
         args.download_dir = args.data_dir[0]
 
-    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
+    logging.basicConfig(
+        level=logging.DEBUG if args.debug else logging.INFO, format=args.log_format
+    )
     _LOGGER.debug(args)
+
+    if args.version:
+        print(__version__)
+        return
 
     # Look for model
     model = FasterWhisperModel(args.model)
@@ -92,6 +103,7 @@ async def main() -> None:
                     url="https://github.com/guillaumekln/faster-whisper/",
                 ),
                 installed=True,
+                version=__version__,
                 models=[
                     AsrModel(
                         name=model.value,
@@ -102,6 +114,7 @@ async def main() -> None:
                         ),
                         installed=True,
                         languages=WHISPER_LANGUAGES,
+                        version="1.0",
                     )
                 ],
             )
@@ -132,8 +145,13 @@ async def main() -> None:
 
 # -----------------------------------------------------------------------------
 
+
+def run() -> None:
+    asyncio.run(main())
+
+
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        run()
     except KeyboardInterrupt:
         pass

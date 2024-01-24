@@ -41,18 +41,6 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         self._language = self.cli_args.language
 
     async def handle_event(self, event: Event) -> bool:
-        if Describe.is_type(event.type):
-            await self.write_event(self.wyoming_info_event)
-            _LOGGER.debug("Sent info")
-            return True
-
-        if Transcribe.is_type(event.type):
-            transcribe = Transcribe.from_event(event)
-            if transcribe.language:
-                self._language = transcribe.language
-                _LOGGER.debug("Language set to %s", transcribe.language)
-            return True
-
         if AudioChunk.is_type(event.type):
             if not self.audio:
                 _LOGGER.debug("Receiving audio")
@@ -83,5 +71,17 @@ class FasterWhisperEventHandler(AsyncEventHandler):
             self._language = self.cli_args.language
 
             return False
+
+        if Transcribe.is_type(event.type):
+            transcribe = Transcribe.from_event(event)
+            if transcribe.language:
+                self._language = transcribe.language
+                _LOGGER.debug("Language set to %s", transcribe.language)
+            return True
+
+        if Describe.is_type(event.type):
+            await self.write_event(self.wyoming_info_event)
+            _LOGGER.debug("Sent info")
+            return True
 
         return True

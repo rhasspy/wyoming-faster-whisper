@@ -3,3 +3,5 @@ flake8==6.0.0
 isort==5.11.3
 mypy==0.991
 pylint==2.15.9
+pytest==7.4.4
+pytest-asyncio==0.23.3

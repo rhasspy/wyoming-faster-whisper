@@ -14,7 +14,7 @@ from wyoming.info import Describe, Info
 
 _DIR = Path(__file__).parent
 _PROGRAM_DIR = _DIR.parent
-_LOCAL_DIR = _DIR / "local"
+_LOCAL_DIR = _PROGRAM_DIR / "local"
 _SAMPLES_PER_CHUNK = 1024
 _TRANSCRIBE_TIMEOUT = 5
 

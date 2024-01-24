@@ -16,7 +16,9 @@ _DIR = Path(__file__).parent
 _PROGRAM_DIR = _DIR.parent
 _LOCAL_DIR = _PROGRAM_DIR / "local"
 _SAMPLES_PER_CHUNK = 1024
-_TRANSCRIBE_TIMEOUT = 5
+
+# Need to give time for the model to download
+_TRANSCRIBE_TIMEOUT = 60
 
 
 @pytest.mark.asyncio

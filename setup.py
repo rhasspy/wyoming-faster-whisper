@@ -23,7 +23,7 @@ version = version_path.read_text(encoding="utf-8").strip()
 # -----------------------------------------------------------------------------
 
 setup(
-    name=module_dir,
+    name=module_name,
     version=version,
     description="Wyoming Server for Faster Whisper",
     url="http://github.com/rhasspy/wyoming-faster-whisper",

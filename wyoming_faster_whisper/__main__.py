@@ -2,17 +2,14 @@
 import argparse
 import asyncio
 import logging
+import re
 from functools import partial
-from pathlib import Path
-from typing import Optional
 
+import faster_whisper
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
 from wyoming.server import AsyncServer
 
 from . import __version__
-from .const import WHISPER_LANGUAGES
-from .download import FasterWhisperModel, download_model, find_model
-from .faster_whisper import WhisperModel
 from .handler import FasterWhisperEventHandler
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,7 +21,6 @@ async def main() -> None:
     parser.add_argument(
         "--model",
         required=True,
-        choices=list(v.value for v in FasterWhisperModel),
         help="Name of faster-whisper model to use",
     )
     parser.add_argument("--uri", required=True, help="unix:// or tcp://")
@@ -78,17 +74,13 @@ async def main() -> None:
     )
     _LOGGER.debug(args)
 
-    # Look for model
-    model = FasterWhisperModel(args.model)
-    model_dir: Optional[Path] = None
-    for data_dir in args.data_dir:
-        model_dir = find_model(model, data_dir)
-        if model_dir is not None:
-            break
-
-    if model_dir is None:
-        _LOGGER.info("Downloading %s to %s", model, args.download_dir)
-        model_dir = download_model(model, args.download_dir)
+    model_name = args.model
+    match = re.match(r"^(tiny|base|small|medium)[.-]int8$", args.model)
+    if match:
+        # Original models re-uploaded to huggingface
+        model_size = match.group(1)
+        model_name = f"{model_size}-int8"
+        args.model = f"rhasspy/faster-whisper-{model_name}"
 
     if args.language == "auto":
         # Whisper does not understand "auto"
@@ -107,25 +99,26 @@ async def main() -> None:
                 version=__version__,
                 models=[
                     AsrModel(
-                        name=model.value,
-                        description=model.value,
+                        name=model_name,
+                        description=model_name,
                         attribution=Attribution(
-                            name="rhasspy",
-                            url="https://github.com/rhasspy/models/",
+                            name="Systran",
+                            url="https://huggingface.co/Systran",
                         ),
                         installed=True,
-                        languages=WHISPER_LANGUAGES,
-                        version="1.0",
+                        languages=faster_whisper.tokenizer._LANGUAGE_CODES,  # pylint: disable=protected-access
+                        version=faster_whisper.__version__,
                     )
                 ],
             )
         ],
     )
 
-    # Load converted faster-whisper model
-    _LOGGER.debug("Loading %s", model_dir)
-    whisper_model = WhisperModel(
-        str(model_dir),
+    # Load model
+    _LOGGER.debug("Loading %s", args.model)
+    whisper_model = faster_whisper.WhisperModel(
+        args.model,
+        download_root=args.download_dir,
         device=args.device,
         compute_type=args.compute_type,
     )

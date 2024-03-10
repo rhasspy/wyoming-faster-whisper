@@ -1,3 +1,2 @@
 wyoming==1.5.2
-ctranslate2>=3.17,<4
-tokenizers==0.15.*
+faster-whisper==1.1.0

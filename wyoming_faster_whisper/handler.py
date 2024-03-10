@@ -2,14 +2,17 @@
 import argparse
 import asyncio
 import logging
+import os
+import tempfile
+import wave
+from typing import Optional
 
+import faster_whisper
 from wyoming.asr import Transcribe, Transcript
-from wyoming.audio import AudioChunk, AudioChunkConverter, AudioStop
+from wyoming.audio import AudioChunk, AudioStop
 from wyoming.event import Event
 from wyoming.info import Describe, Info
 from wyoming.server import AsyncEventHandler
-
-from .faster_whisper import WhisperModel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +24,7 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         self,
         wyoming_info: Info,
         cli_args: argparse.Namespace,
-        model: WhisperModel,
+        model: faster_whisper.WhisperModel,
         model_lock: asyncio.Lock,
         *args,
         **kwargs,
@@ -32,30 +35,34 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         self.wyoming_info_event = wyoming_info.event()
         self.model = model
         self.model_lock = model_lock
-        self.audio = bytes()
-        self.audio_converter = AudioChunkConverter(
-            rate=16000,
-            width=2,
-            channels=1,
-        )
         self._language = self.cli_args.language
+        self._wav_dir = tempfile.TemporaryDirectory()
+        self._wav_path = os.path.join(self._wav_dir.name, "speech.wav")
+        self._wav_file: Optional[wave.Wave_write] = None
 
     async def handle_event(self, event: Event) -> bool:
         if AudioChunk.is_type(event.type):
-            if not self.audio:
-                _LOGGER.debug("Receiving audio")
-
             chunk = AudioChunk.from_event(event)
-            chunk = self.audio_converter.convert(chunk)
-            self.audio += chunk.audio
 
+            if self._wav_file is None:
+                self._wav_file = wave.open(self._wav_path, "wb")
+                self._wav_file.setframerate(chunk.rate)
+                self._wav_file.setsampwidth(chunk.width)
+                self._wav_file.setnchannels(chunk.channels)
+
+            self._wav_file.writeframes(chunk.audio)
             return True
 
         if AudioStop.is_type(event.type):
             _LOGGER.debug("Audio stopped")
+            assert self._wav_file is not None
+
+            self._wav_file.close()
+            self._wav_file = None
+
             async with self.model_lock:
                 segments, _info = self.model.transcribe(
-                    self.audio,
+                    self._wav_path,
                     beam_size=self.cli_args.beam_size,
                     language=self._language,
                 )
@@ -67,7 +74,6 @@ class FasterWhisperEventHandler(AsyncEventHandler):
             _LOGGER.debug("Completed request")
 
             # Reset
-            self.audio = bytes()
             self._language = self.cli_args.language
 
             return False

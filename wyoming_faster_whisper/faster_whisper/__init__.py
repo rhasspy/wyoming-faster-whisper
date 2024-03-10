@@ -1,1 +1,0 @@
-from .transcribe import WhisperModel

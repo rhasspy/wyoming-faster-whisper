@@ -53,6 +53,11 @@ async def main() -> None:
         type=int,
         default=5,
     )
+    parser.add_argument(
+        "--initial-prompt",
+        help="Optional text to provide as a prompt for the first window",
+    )
+    #
     parser.add_argument("--debug", action="store_true", help="Log DEBUG messages")
     parser.add_argument(
         "--log-format", default=logging.BASIC_FORMAT, help="Format for log messages"
@@ -133,6 +138,7 @@ async def main() -> None:
             args,
             whisper_model,
             model_lock,
+            initial_prompt=args.initial_prompt,
         )
     )
 

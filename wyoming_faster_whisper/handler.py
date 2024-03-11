@@ -27,6 +27,7 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         model: faster_whisper.WhisperModel,
         model_lock: asyncio.Lock,
         *args,
+        initial_prompt: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -35,6 +36,7 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         self.wyoming_info_event = wyoming_info.event()
         self.model = model
         self.model_lock = model_lock
+        self.initial_prompt = initial_prompt
         self._language = self.cli_args.language
         self._wav_dir = tempfile.TemporaryDirectory()
         self._wav_path = os.path.join(self._wav_dir.name, "speech.wav")
@@ -54,7 +56,10 @@ class FasterWhisperEventHandler(AsyncEventHandler):
             return True
 
         if AudioStop.is_type(event.type):
-            _LOGGER.debug("Audio stopped")
+            _LOGGER.debug(
+                "Audio stopped. Transcribing with initial prompt=%s",
+                self.initial_prompt,
+            )
             assert self._wav_file is not None
 
             self._wav_file.close()
@@ -65,6 +70,7 @@ class FasterWhisperEventHandler(AsyncEventHandler):
                     self._wav_path,
                     beam_size=self.cli_args.beam_size,
                     language=self._language,
+                    initial_prompt=self.initial_prompt,
                 )
 
             text = " ".join(segment.text for segment in segments)

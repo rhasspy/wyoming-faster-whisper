@@ -1,2 +1,2 @@
-wyoming==1.5.2
+wyoming==1.5.3
 faster-whisper==1.0.1

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0
+
+- Added `--initial-prompt` (see https://github.com/openai/whisper/discussions/963)
+
 ## 2.0.0
 
 - Use faster-whisper PyPI package

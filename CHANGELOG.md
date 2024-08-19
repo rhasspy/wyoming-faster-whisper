@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0
+
+- Bump faster-whisper package to 1.3.0
+
 ## 2.1.0
 
 - Added `--initial-prompt` (see https://github.com/openai/whisper/discussions/963)

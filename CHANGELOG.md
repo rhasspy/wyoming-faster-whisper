@@ -2,7 +2,7 @@
 
 ## 2.2.0
 
-- Bump faster-whisper package to 1.3.0
+- Bump faster-whisper package to 1.0.3
 
 ## 2.1.0
 

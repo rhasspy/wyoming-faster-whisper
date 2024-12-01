@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.0
+
+- Bump faster-whisper package to 1.1.0
+- Supports model `turbo` for faster processing
+
 ## 2.2.0
 
 - Bump faster-whisper package to 1.0.3

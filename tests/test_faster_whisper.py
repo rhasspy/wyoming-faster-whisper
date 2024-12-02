@@ -1,4 +1,5 @@
 """Tests for wyoming-faster-whisper"""
+
 import asyncio
 import re
 import sys
@@ -18,6 +19,7 @@ _LOCAL_DIR = _PROGRAM_DIR / "local"
 _SAMPLES_PER_CHUNK = 1024
 
 # Need to give time for the model to download
+_START_TIMEOUT = 60
 _TRANSCRIBE_TIMEOUT = 60
 
 
@@ -44,7 +46,9 @@ async def test_faster_whisper() -> None:
     # Check info
     await async_write_event(Describe().event(), proc.stdin)
     while True:
-        event = await asyncio.wait_for(async_read_event(proc.stdout), timeout=1)
+        event = await asyncio.wait_for(
+            async_read_event(proc.stdout), timeout=_START_TIMEOUT
+        )
         assert event is not None
 
         if not Info.is_type(event.type):

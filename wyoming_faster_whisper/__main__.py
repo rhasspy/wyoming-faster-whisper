@@ -57,6 +57,10 @@ async def main() -> None:
         "--initial-prompt",
         help="Optional text to provide as a prompt for the first window",
     )
+    parser.add_argument(
+        "--local_files_only",
+        help="faster-whisper: If True, avoid downloading the file and return the path to the local cached file if it exists."
+    )
     #
     parser.add_argument("--debug", action="store_true", help="Log DEBUG messages")
     parser.add_argument(
@@ -90,6 +94,9 @@ async def main() -> None:
     if args.language == "auto":
         # Whisper does not understand "auto"
         args.language = None
+    
+    if not args.local_files_only:
+        args.local_files_only = False
 
     wyoming_info = Info(
         asr=[
@@ -124,6 +131,7 @@ async def main() -> None:
     whisper_model = faster_whisper.WhisperModel(
         args.model,
         download_root=args.download_dir,
+        local_files_only=args.local_files_only,
         device=args.device,
         compute_type=args.compute_type,
     )

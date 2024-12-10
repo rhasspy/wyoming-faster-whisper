@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import logging
+import platform
 import re
 from functools import partial
 
@@ -21,7 +22,7 @@ async def main() -> None:
     parser.add_argument(
         "--model",
         required=True,
-        help="Name of faster-whisper model to use",
+        help="Name of faster-whisper model to use (or auto)",
     )
     parser.add_argument("--uri", required=True, help="unix:// or tcp://")
     parser.add_argument(
@@ -52,6 +53,7 @@ async def main() -> None:
         "--beam-size",
         type=int,
         default=5,
+        help="Size of beam during decoding (0 for auto)",
     )
     parser.add_argument(
         "--initial-prompt",
@@ -79,6 +81,18 @@ async def main() -> None:
     )
     _LOGGER.debug(args)
 
+    # Automatic configuration for ARM
+    machine = platform.machine().lower()
+    is_arm = ("arm" in machine) or ("aarch" in machine)
+    if args.model == "auto":
+        args.model = "tiny-int8" if is_arm else "base-int8"
+        _LOGGER.debug("Model automatically selected: %s", args.model)
+
+    if args.beam_size <= 0:
+        args.beam_size = 1 if is_arm else 5
+        _LOGGER.debug("Beam size automatically selected: %s", args.beam_size)
+
+    # Resolve model name
     model_name = args.model
     match = re.match(r"^(tiny|base|small|medium)[.-]int8$", args.model)
     if match:

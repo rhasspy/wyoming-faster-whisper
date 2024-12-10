@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.0
+
+- Add "auto" for model and beam size (0) to select values based on CPU
+
 ## 2.3.0
 
 - Bump faster-whisper package to 1.1.0

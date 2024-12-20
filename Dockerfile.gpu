@@ -17,5 +17,3 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen
 
 EXPOSE 10300
-
-#CMD ["uv", "run", "wyoming-faster-whisper", "--model", "large-v3", "--uri", "tcp://0.0.0.0:10300", "--data-dir", "/app/models", "--beam-size", "5", "--language", "en"]

@@ -70,6 +70,12 @@ async def main() -> None:
         version=__version__,
         help="Print version and exit",
     )
+    parser.add_argument(
+        "--cpu-threads",
+        default=4,
+        type=int,
+        help="Number of CPU threads to use for inference (default: 4)",
+    )
     args = parser.parse_args()
 
     if not args.download_dir:
@@ -140,6 +146,7 @@ async def main() -> None:
         download_root=args.download_dir,
         device=args.device,
         compute_type=args.compute_type,
+        cpu_threads=args.cpu_threads,
     )
 
     server = AsyncServer.from_uri(args.uri)

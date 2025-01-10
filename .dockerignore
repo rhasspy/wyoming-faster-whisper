@@ -1,0 +1,10 @@
+.github
+.gitignore
+tests
+.projectile
+pylintrc
+Dockerfile
+*.md
+*.in
+*.ini
+*.cfg

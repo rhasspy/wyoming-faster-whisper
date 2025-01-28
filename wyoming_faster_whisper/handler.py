@@ -38,6 +38,7 @@ class FasterWhisperEventHandler(AsyncEventHandler):
         self.model_lock = model_lock
         self.initial_prompt = initial_prompt
         self._language = self.cli_args.language
+        self._task = self.cli_args.task
         self._wav_dir = tempfile.TemporaryDirectory()
         self._wav_path = os.path.join(self._wav_dir.name, "speech.wav")
         self._wav_file: Optional[wave.Wave_write] = None
@@ -71,6 +72,7 @@ class FasterWhisperEventHandler(AsyncEventHandler):
                     beam_size=self.cli_args.beam_size,
                     language=self._language,
                     initial_prompt=self.initial_prompt,
+                    task=self._task,
                 )
 
             text = " ".join(segment.text for segment in segments)

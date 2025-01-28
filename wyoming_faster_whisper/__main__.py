@@ -59,6 +59,12 @@ async def main() -> None:
         "--initial-prompt",
         help="Optional text to provide as a prompt for the first window",
     )
+    parser.add_argument(
+        "--task",
+        default="transcribe",
+        help="Whether to transcribe or translate (default: transcribe)",
+        choices=["transcribe", "translate"],
+    )
     #
     parser.add_argument("--debug", action="store_true", help="Log DEBUG messages")
     parser.add_argument(

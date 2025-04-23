@@ -38,7 +38,7 @@ docker build -t wyoming-whisper -f Dockerfile.cpu .
 #### Run Docker Image 
 ``` sh
 docker run -it -p 10300:10300 -v /path/to/local/data:/data rhasspy/wyoming-whisper \
-    --model tiny-int8 --language en
+    --model tiny-int8 --language en --data-dir /path/to/local/data
 ```
 
 #### Docker Compose
@@ -60,7 +60,7 @@ docker build -t wyoming-whisper -f Dockerfile.gpu .
 
 ``` sh
 docker run -it -p 10300:10300 -v /path/to/local/data:/data wyoming-whisper \
-    --model tiny-int8 --language en --device cuda
+    --model tiny-int8 --language en --device cuda --data-dir /path/to/local/data
 ```
 
 #### Docker Compose

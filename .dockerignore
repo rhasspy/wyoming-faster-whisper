@@ -1,0 +1,6 @@
+*
+
+# Allow only the files and directories needed
+!wyoming_faster_whisper/
+!uv.lock
+!pyproject.toml

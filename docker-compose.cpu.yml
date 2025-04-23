@@ -1,0 +1,21 @@
+services:
+  whisper:
+    build: 
+      context: .
+      dockerfile: Dockerfile.cpu
+    command: [
+      "uv", "run", "wyoming-faster-whisper",
+      "--model", "base",
+      "--uri", "tcp://0.0.0.0:10300",
+      "--data-dir", "/data",
+      "--beam-size", "5",
+      "--language", "en",
+    ]
+    volumes:
+      - ./whisper-data:/data
+    environment:
+      # - TZ=Asia/Kolkata
+      - local_files_only=False
+    restart: unless-stopped
+    ports:
+      - 10300:10300

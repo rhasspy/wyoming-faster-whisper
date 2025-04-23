@@ -29,10 +29,24 @@ The `--model` can also be a HuggingFace model like `Systran/faster-distil-whispe
 ## Docker
 
 ### CPU
+
+#### Build Docker Image
+``` sh
+docker build -t wyoming-whisper -f Dockerfile.cpu .
+```
+
 #### Run Docker Image 
 ``` sh
 docker run -it -p 10300:10300 -v /path/to/local/data:/data rhasspy/wyoming-whisper \
     --model tiny-int8 --language en
+```
+
+#### Docker Compose
+
+When using docker compose for CPU, 
+
+``` sh
+docker compose up -f docker-compose.cpu.yml -d
 ```
 
 ### GPU
@@ -46,7 +60,7 @@ docker build -t wyoming-whisper -f Dockerfile.gpu .
 
 ``` sh
 docker run -it -p 10300:10300 -v /path/to/local/data:/data wyoming-whisper \
-    --model tiny-int8 --language en
+    --model tiny-int8 --language en --device cuda
 ```
 
 #### Docker Compose

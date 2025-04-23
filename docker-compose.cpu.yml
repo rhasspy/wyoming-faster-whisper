@@ -2,7 +2,7 @@ services:
   whisper:
     build: 
       context: .
-      dockerfile: Dockerfile.gpu
+      dockerfile: Dockerfile.cpu
     command: [
       "uv", "run", "wyoming-faster-whisper",
       "--model", "base",
@@ -10,20 +10,12 @@ services:
       "--data-dir", "/data",
       "--beam-size", "5",
       "--language", "en",
-      "--device", "cuda"
     ]
     volumes:
       - ./whisper-data:/data
     environment:
       # - TZ=Asia/Kolkata
       - local_files_only=False
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     restart: unless-stopped
     ports:
       - 10300:10300

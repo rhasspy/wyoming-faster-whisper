@@ -10,6 +10,9 @@ _VENV_DIR = _PROGRAM_DIR / ".venv"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dev", action="store_true", help="Install dev requirements")
+parser.add_argument(
+    "--transformers", action="store_true", help="Install transformers requirements"
+)
 args = parser.parse_args()
 
 # Create virtual environment
@@ -22,11 +25,16 @@ pip = [context.env_exe, "-m", "pip"]
 subprocess.check_call(pip + ["install", "--upgrade", "pip"])
 subprocess.check_call(pip + ["install", "--upgrade", "setuptools", "wheel"])
 
-# Install requirements
-subprocess.check_call(pip + ["install", "-r", str(_PROGRAM_DIR / "requirements.txt")])
-
+extras = []
 if args.dev:
-    # Install dev requirements
-    subprocess.check_call(
-        pip + ["install", "-r", str(_PROGRAM_DIR / "requirements_dev.txt")]
-    )
+    extras.append("dev")
+
+if args.transformers:
+    extras.append("transformers")
+
+extras_str = ""
+if extras:
+    extras_str = "[" + ",".join(extras) + "]"
+
+# Install requirements
+subprocess.check_call(pip + ["install", "-e", f"{_PROGRAM_DIR}{extras_str}"])

@@ -5,6 +5,7 @@ import logging
 import platform
 import re
 from functools import partial
+from typing import Any
 
 import faster_whisper
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
@@ -58,6 +59,16 @@ async def main() -> None:
     parser.add_argument(
         "--initial-prompt",
         help="Optional text to provide as a prompt for the first window",
+    )
+    parser.add_argument(
+        "--use-transformers",
+        action="store_true",
+        help="Use HuggingFace transformers library (requires transformers extras)",
+    )
+    parser.add_argument(
+        "--local-files-only",
+        action="store_true",
+        help="Don't check HuggingFace hub for updates every time",
     )
     #
     parser.add_argument("--debug", action="store_true", help="Log DEBUG messages")
@@ -135,26 +146,61 @@ async def main() -> None:
 
     # Load model
     _LOGGER.debug("Loading %s", args.model)
-    whisper_model = faster_whisper.WhisperModel(
-        args.model,
-        download_root=args.download_dir,
-        device=args.device,
-        compute_type=args.compute_type,
-    )
+    whisper_model: Any = None
+
+    if args.use_transformers:
+        # Use HuggingFace transformers
+        from .transformers_whisper import TransformersWhisperModel
+
+        whisper_model = TransformersWhisperModel(
+            args.model, args.download_dir, args.local_files_only
+        )
+    else:
+        # Use faster-whisper
+        whisper_model = faster_whisper.WhisperModel(
+            args.model,
+            download_root=args.download_dir,
+            device=args.device,
+            compute_type=args.compute_type,
+        )
 
     server = AsyncServer.from_uri(args.uri)
     _LOGGER.info("Ready")
     model_lock = asyncio.Lock()
-    await server.run(
-        partial(
-            FasterWhisperEventHandler,
-            wyoming_info,
-            args,
-            whisper_model,
-            model_lock,
-            initial_prompt=args.initial_prompt,
+
+    if args.use_transformers:
+        # Use HuggingFace transformers
+        from .transformers_whisper import (
+            TransformersWhisperEventHandler,
+            TransformersWhisperModel,
         )
-    )
+
+        assert isinstance(whisper_model, TransformersWhisperModel)
+
+        # TODO: initial prompt
+        await server.run(
+            partial(
+                TransformersWhisperEventHandler,
+                wyoming_info,
+                args.language,
+                args.beam_size,
+                whisper_model,
+                model_lock,
+            )
+        )
+    else:
+        # Use faster-whisper
+        assert isinstance(whisper_model, faster_whisper.WhisperModel)
+        await server.run(
+            partial(
+                FasterWhisperEventHandler,
+                wyoming_info,
+                args,
+                whisper_model,
+                model_lock,
+                initial_prompt=args.initial_prompt,
+            )
+        )
 
 
 # -----------------------------------------------------------------------------

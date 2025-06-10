@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.0
+
+- Add support for HuggingFace transformers Whisper models (--use-transformers)
+
 ## 2.4.0
 
 - Add "auto" for model and beam size (0) to select values based on CPU

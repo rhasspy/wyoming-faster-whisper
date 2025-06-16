@@ -34,6 +34,20 @@ class TransformersWhisperModel:
         self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id, cache_dir=cache_dir, local_files_only=local_files_only
         )
+        
+        # Detect and set device
+        if torch.backends.mps.is_available():
+            device = "mps"  # Metal Performance Shaders for Apple Silicon
+            _LOGGER.info("Using Metal GPU acceleration")
+        elif torch.cuda.is_available():
+            device = "cuda"  # NVIDIA GPU
+            _LOGGER.info("Using CUDA GPU acceleration")
+        else:
+            device = "cpu"
+            _LOGGER.info("Using CPU for inference")
+            
+        self.device = device
+        self.model = self.model.to(device)
         self.model.eval()
 
     def transcribe(
@@ -58,6 +72,8 @@ class TransformersWhisperModel:
         )
 
         inputs = self.processor(audio_tensor, sampling_rate=16000, return_tensors="pt")
+        # Move inputs to the same device as the model
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
         generate_args = {**inputs, "num_beams": beam_size}
 
         if language:

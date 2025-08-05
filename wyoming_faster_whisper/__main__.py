@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import argparse
 import asyncio
 import logging
@@ -42,6 +43,11 @@ async def main() -> None:
         help="Device to use for inference (default: cpu)",
     )
     parser.add_argument(
+        "--gpu-id",
+        type=str,
+        help="Specify a single GPU ID to use for inference.",
+    )
+    parser.add_argument(
         "--language",
         help="Default language to set for transcription",
     )
@@ -82,6 +88,16 @@ async def main() -> None:
         help="Print version and exit",
     )
     args = parser.parse_args()
+
+    if args.gpu_id:
+        if "CUDA_VISIBLE_DEVICES" in os.environ:
+            _LOGGER.warning(
+                "CUDA_VISIBLE_DEVICES is already set to '%s', but will be overridden by --gpu-id '%s'",
+                os.environ["CUDA_VISIBLE_DEVICES"],
+                args.gpu_id,
+            )
+        _LOGGER.debug("Setting CUDA_VISIBLE_DEVICES to %s", args.gpu_id)
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     if not args.download_dir:
         # Download to first data dir by default
@@ -161,6 +177,7 @@ async def main() -> None:
             args.model,
             download_root=args.download_dir,
             device=args.device,
+            device_index=0,
             compute_type=args.compute_type,
         )
 

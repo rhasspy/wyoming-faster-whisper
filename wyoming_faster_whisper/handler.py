@@ -74,7 +74,7 @@ class FasterWhisperEventHandler(AsyncEventHandler):
                 )
 
             text = " ".join(segment.text for segment in segments)
-            _LOGGER.info(text)
+            _LOGGER.info(text[:50])
 
             await self.write_event(Transcript(text=text).event())
             _LOGGER.debug("Completed request")

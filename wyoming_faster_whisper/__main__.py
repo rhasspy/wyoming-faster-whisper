@@ -23,61 +23,79 @@ async def main() -> None:
     parser.add_argument(
         "--model",
         required=True,
+        default=os.environ.get("WYOMING_MODEL_NAME"),
         help="Name of faster-whisper model to use (or auto)",
     )
-    parser.add_argument("--uri", required=True, help="unix:// or tcp://")
+    parser.add_argument(
+        "--uri",
+        required=True,
+        help="unix:// or tcp://",
+        default=os.environ.get("WYOMING_URI"),
+    )
     parser.add_argument(
         "--data-dir",
         required=True,
         action="append",
+        default=os.environ.get("WYOMING_DATA_DIR"),
         help="Data directory to check for downloaded models",
     )
     parser.add_argument(
         "--download-dir",
         help="Directory to download models into (default: first data dir)",
+        default=os.environ.get("WYOMING_DOWNLOAD_DIR"),
     )
     parser.add_argument(
         "--device",
-        default="cpu",
+        default=os.environ.get("WYOMING_DEVICE", "cpu"),
         help="Device to use for inference (default: cpu)",
     )
     parser.add_argument(
         "--language",
+        default=os.environ.get("WYOMING_LANGUAGE", "en"),
         help="Default language to set for transcription",
     )
     parser.add_argument(
         "--compute-type",
-        default="default",
+        default=os.environ.get("WYOMING_COMPUTE_TYPE", "default"),
         help="Compute type (float16, int8, etc.)",
     )
     parser.add_argument(
         "--beam-size",
         type=int,
-        default=5,
+        default=os.environ.get("WYOMING_BEAM_SIZE", 5),
         help="Size of beam during decoding (0 for auto)",
     )
     parser.add_argument(
         "--initial-prompt",
+        default=os.environ.get("WYOMING_INITIAL_PROMPT"),
         help="Optional text to provide as a prompt for the first window",
     )
     parser.add_argument(
         "--use-transformers",
         action="store_true",
+        default=os.environ.get("WYOMING_USE_TRANSFORMERS"),
         help="Use HuggingFace transformers library (requires transformers extras)",
     )
     parser.add_argument(
         "--local-files-only",
         action="store_true",
+        default=os.environ.get("WYOMING_LOCAL_FILES_ONLY"),
         help="Don't check HuggingFace hub for updates every time",
     )
     #
-    parser.add_argument("--debug", action="store_true", help="Log DEBUG messages")
     parser.add_argument(
-        "--log-format", default=logging.BASIC_FORMAT, help="Format for log messages"
+        "--debug",
+        action="store_true",
+        default=os.environ.get("WYOMING_DEBUG"),
+        help="Log DEBUG messages"
+    )
+    parser.add_argument(
+        "--log-format", default=os.environ.get("WYOMING_LOG_FORMAT", logging.BASIC_FORMAT), help="Format for log messages"
     )
     parser.add_argument(
         "--version",
         action="version",
+        default=os.environ.get("WYOMING_VERSION", __version__),
         version=__version__,
         help="Print version and exit",
     )

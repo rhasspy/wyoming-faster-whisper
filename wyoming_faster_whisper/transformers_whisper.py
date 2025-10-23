@@ -11,12 +11,14 @@ from typing import Optional, Union
 import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 from wyoming.asr import Transcribe, Transcript
-from wyoming.audio import AudioChunk, AudioStop
+from wyoming.audio import AudioChunk, AudioChunkConverter, AudioStop
 from wyoming.event import Event
 from wyoming.info import Describe, Info
 from wyoming.server import AsyncEventHandler
 
 _LOGGER = logging.getLogger(__name__)
+
+_RATE = 16000
 
 
 class TransformersWhisperModel:
@@ -49,16 +51,16 @@ class TransformersWhisperModel:
         """
         wav_file: wave.Wave_read = wave.open(str(wav_path), "rb")
         with wav_file:
-            assert wav_file.getframerate() == 16000, "Sample rate must be 16Khz"
+            assert wav_file.getframerate() == _RATE, "Sample rate must be 16Khz"
             assert wav_file.getsampwidth() == 2, "Width must be 16-bit (2 bytes)"
-            assert wav_file.getnchannels() == 1, "Audio muts be mono"
+            assert wav_file.getnchannels() == 1, "Audio must be mono"
             audio_bytes = wav_file.readframes(wav_file.getnframes())
 
         audio_tensor = (
             torch.frombuffer(audio_bytes, dtype=torch.int16).float() / 32768.0
         )
 
-        inputs = self.processor(audio_tensor, sampling_rate=16000, return_tensors="pt")
+        inputs = self.processor(audio_tensor, sampling_rate=_RATE, return_tensors="pt")
         generate_args = {**inputs, "num_beams": beam_size}
 
         if language:
@@ -99,10 +101,11 @@ class TransformersWhisperEventHandler(AsyncEventHandler):
         self._wav_dir = tempfile.TemporaryDirectory()
         self._wav_path = os.path.join(self._wav_dir.name, "speech.wav")
         self._wav_file: Optional[wave.Wave_write] = None
+        self._audio_converter = AudioChunkConverter(rate=_RATE, width=2, channels=1)
 
     async def handle_event(self, event: Event) -> bool:
         if AudioChunk.is_type(event.type):
-            chunk = AudioChunk.from_event(event)
+            chunk = self._audio_converter.convert(AudioChunk.from_event(event))
 
             if self._wav_file is None:
                 self._wav_file = wave.open(self._wav_path, "wb")

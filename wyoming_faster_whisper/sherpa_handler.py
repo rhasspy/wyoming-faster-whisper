@@ -14,7 +14,7 @@ from typing import Optional, Union
 import numpy as np
 import sherpa_onnx as so
 from wyoming.asr import Transcribe, Transcript
-from wyoming.audio import AudioChunk, AudioStop
+from wyoming.audio import AudioChunk, AudioChunkConverter, AudioStop
 from wyoming.event import Event
 from wyoming.info import Describe, Info
 from wyoming.server import AsyncEventHandler
@@ -74,7 +74,7 @@ class SherpaModel:
         with wav_file:
             assert wav_file.getframerate() == _RATE, "Sample rate must be 16Khz"
             assert wav_file.getsampwidth() == 2, "Width must be 16-bit (2 bytes)"
-            assert wav_file.getnchannels() == 1, "Audio muts be mono"
+            assert wav_file.getnchannels() == 1, "Audio must be mono"
             audio_bytes = wav_file.readframes(wav_file.getnframes())
 
         audio_array = (
@@ -109,10 +109,11 @@ class SherpaEventHandler(AsyncEventHandler):
         self._wav_dir = tempfile.TemporaryDirectory()
         self._wav_path = os.path.join(self._wav_dir.name, "speech.wav")
         self._wav_file: Optional[wave.Wave_write] = None
+        self._audio_converter = AudioChunkConverter(rate=_RATE, width=2, channels=1)
 
     async def handle_event(self, event: Event) -> bool:
         if AudioChunk.is_type(event.type):
-            chunk = AudioChunk.from_event(event)
+            chunk = self._audio_converter.convert(AudioChunk.from_event(event))
 
             if self._wav_file is None:
                 self._wav_file = wave.open(self._wav_path, "wb")

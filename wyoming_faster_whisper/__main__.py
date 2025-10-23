@@ -12,7 +12,7 @@ from wyoming.info import AsrModel, AsrProgram, Attribution, Info
 from wyoming.server import AsyncServer
 
 from . import __version__
-from .const import SttLibrary, PARAKEET_LANGUAGES
+from .const import PARAKEET_LANGUAGES, SttLibrary
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ async def main() -> None:
     )
     parser.add_argument(
         "--stt-library",
-        choices=(lib.value for lib in SttLibrary),
+        choices=[lib.value for lib in SttLibrary],
         default=SttLibrary.AUTO,
         help="Set library to use for speech-to-text (may require extra dependencies)",
     )
@@ -170,7 +170,7 @@ async def main() -> None:
 
     if stt_library == SttLibrary.SHERPA:
         # Use Sherpa ONNX with nemo
-        from .sherpa_handler import SherpaModel
+        from .sherpa_handler import SherpaModel  # noqa: F811
 
         whisper_model = SherpaModel(args.model, args.download_dir)
     elif stt_library == SttLibrary.TRANSFORMERS:

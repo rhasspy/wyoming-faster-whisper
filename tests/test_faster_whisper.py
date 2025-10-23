@@ -1,11 +1,10 @@
-"""Tests for wyoming-faster-whisper"""
+"""Tests for faster-whisper."""
 
 import asyncio
 import re
 import sys
 import wave
 from asyncio.subprocess import PIPE
-from pathlib import Path
 
 import pytest
 from wyoming.asr import Transcribe, Transcript
@@ -13,26 +12,30 @@ from wyoming.audio import AudioStart, AudioStop, wav_to_chunks
 from wyoming.event import async_read_event, async_write_event
 from wyoming.info import Describe, Info
 
-_DIR = Path(__file__).parent
-_PROGRAM_DIR = _DIR.parent
-_LOCAL_DIR = _PROGRAM_DIR / "local"
-_SAMPLES_PER_CHUNK = 1024
 
-# Need to give time for the model to download
-_START_TIMEOUT = 60
-_TRANSCRIBE_TIMEOUT = 60
+from . import _LOCAL_DIR, _SAMPLES_PER_CHUNK, _START_TIMEOUT, _TRANSCRIBE_TIMEOUT, _DIR
 
 
+@pytest.mark.parametrize(
+    ("stt_library", "model"),
+    [
+        ("faster-whisper", "base-int8"),
+        ("transformers", "openai/whisper-base.en"),
+        ("sherpa", "auto"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_faster_whisper() -> None:
+async def test_faster_whisper(stt_library: str, model: str) -> None:
     proc = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
         "wyoming_faster_whisper",
         "--uri",
         "stdio://",
+        "--stt-library",
+        stt_library,
         "--model",
-        "tiny-int8",
+        model,
         "--data-dir",
         str(_LOCAL_DIR),
         "--language",
@@ -56,15 +59,9 @@ async def test_faster_whisper() -> None:
 
         info = Info.from_event(event)
         assert len(info.asr) == 1, "Expected one asr service"
-        asr = info.asr[0]
-        assert len(asr.models) > 0, "Expected at least one model"
-        assert any(
-            m.name == "tiny-int8" for m in asr.models
-        ), "Expected tiny-int8 model"
         break
 
-    # We want to use the whisper model
-    await async_write_event(Transcribe(name="tiny-int8").event(), proc.stdin)
+    await async_write_event(Transcribe().event(), proc.stdin)
 
     # Test known WAV
     with wave.open(str(_DIR / "turn_on_the_living_room_lamp.wav"), "rb") as example_wav:

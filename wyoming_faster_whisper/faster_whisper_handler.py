@@ -1,4 +1,5 @@
 """Event handler for clients of the server."""
+
 import argparse
 import asyncio
 import logging

@@ -6,7 +6,13 @@ from pathlib import Path
 
 _DIR = Path(__file__).parent
 _PROGRAM_DIR = _DIR.parent
+_MODULE = _PROGRAM_DIR.name.replace("-", "_")
 _VENV_DIR = _PROGRAM_DIR / ".venv"
 
-context = venv.EnvBuilder().ensure_directories(_VENV_DIR)
-subprocess.check_call([context.env_exe, "-m", "wyoming_faster_whisper"] + sys.argv[1:])
+if _VENV_DIR.exists():
+    context = venv.EnvBuilder().ensure_directories(_VENV_DIR)
+    python_exe = context.env_exe
+else:
+    python_exe = "python3"
+
+subprocess.check_call([python_exe, "-m", _MODULE] + sys.argv[1:])

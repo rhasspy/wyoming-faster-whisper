@@ -1,15 +1,18 @@
-"""Code for Whisper transcription using HuggingFace's transformers library."""
+"""Code for transcription using the sherpa-onnx library."""
 
 import asyncio
 import logging
 import os
+import shutil
+import tarfile
 import tempfile
+import urllib.request
 import wave
 from pathlib import Path
 from typing import Optional, Union
 
-import torch
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
+import numpy as np
+import sherpa_onnx as so
 from wyoming.asr import Transcribe, Transcript
 from wyoming.audio import AudioChunk, AudioStop
 from wyoming.event import Event
@@ -18,65 +21,72 @@ from wyoming.server import AsyncEventHandler
 
 _LOGGER = logging.getLogger(__name__)
 
+_RATE = 16000
+_URL_FORMAT = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/{model_id}.tar.bz2"
 
-class TransformersWhisperModel:
-    """Wrapper for HuggingFace transformers Whisper model."""
 
-    def __init__(
-        self,
-        model_id: str,
-        cache_dir: Optional[Union[str, Path]] = None,
-        local_files_only: bool = False,
-    ) -> None:
-        """Initialize Whisper model."""
-        self.processor = AutoProcessor.from_pretrained(
-            model_id, cache_dir=cache_dir, local_files_only=local_files_only
+class SherpaModel:
+    """Wrapper for sherpa-onnx model."""
+
+    def __init__(self, model_id: str, cache_dir: Union[str, Path]) -> None:
+        """Initialize model."""
+        cache_dir = Path(cache_dir)
+        model_dir = cache_dir / model_id
+        _LOGGER.debug("Looking for sherpa model: %s", model_dir)
+
+        if not model_dir.exists():
+            url = _URL_FORMAT.format(model_id=model_id)
+            _LOGGER.info("Downloading %s", url)
+            try:
+                # Download/extract to cache dir.
+                # We assume that the .tar.bz2 contains a directory named after
+                # the model id.
+                with urllib.request.urlopen(url) as response:
+                    with tarfile.open(fileobj=response, mode="r|bz2") as tar:
+                        for member in tar:
+                            tar.extract(member, path=cache_dir)
+            except Exception:
+                # Delete directory so we'll download again next time
+                shutil.rmtree(model_dir, ignore_errors=True)
+                raise
+
+        # Load model
+        self.recognizer = so.OfflineRecognizer.from_transducer(
+            encoder=f"{model_dir}/encoder.int8.onnx",
+            decoder=f"{model_dir}/decoder.int8.onnx",
+            joiner=f"{model_dir}/joiner.int8.onnx",
+            tokens=f"{model_dir}/tokens.txt",
+            provider="cpu",
+            model_type="nemo_transducer",
         )
-        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            model_id, cache_dir=cache_dir, local_files_only=local_files_only
-        )
-        self.model.eval()
 
-    def transcribe(
-        self,
-        wav_path: Union[str, Path],
-        beam_size: int = 5,
-        language: Optional[str] = None,
-    ) -> str:
+        # Prime model so that the first transcription will be fast
+        stream = self.recognizer.create_stream()
+        stream.accept_waveform(_RATE, np.zeros(shape=(128), dtype=np.float32))
+        self.recognizer.decode_stream(stream)
+
+    def transcribe(self, wav_path: Union[str, Path], *args, **kwargs) -> str:
         """Returns transcription for WAV file.
 
         WAV file must be 16Khz 16-bit mono audio.
         """
         wav_file: wave.Wave_read = wave.open(str(wav_path), "rb")
         with wav_file:
-            assert wav_file.getframerate() == 16000, "Sample rate must be 16Khz"
+            assert wav_file.getframerate() == _RATE, "Sample rate must be 16Khz"
             assert wav_file.getsampwidth() == 2, "Width must be 16-bit (2 bytes)"
             assert wav_file.getnchannels() == 1, "Audio muts be mono"
             audio_bytes = wav_file.readframes(wav_file.getnframes())
 
-        audio_tensor = (
-            torch.frombuffer(audio_bytes, dtype=torch.int16).float() / 32768.0
+        audio_array = (
+            np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32767.0
         )
-
-        inputs = self.processor(audio_tensor, sampling_rate=16000, return_tensors="pt")
-        generate_args = {**inputs, "num_beams": beam_size}
-
-        if language:
-            generate_args["forced_decoder_ids"] = self.processor.get_decoder_prompt_ids(
-                language=language, task="transcribe"
-            )
-
-        with torch.no_grad():
-            # Ignore warning about attention_mask because we're only doing a single utterance.
-            generated_ids = self.model.generate(**generate_args)
-            transcription = self.processor.batch_decode(
-                generated_ids, skip_special_tokens=True
-            )[0]
-
-        return transcription
+        stream = self.recognizer.create_stream()
+        stream.accept_waveform(_RATE, audio_array)
+        self.recognizer.decode_stream(stream)
+        return stream.result.text
 
 
-class TransformersWhisperEventHandler(AsyncEventHandler):
+class SherpaEventHandler(AsyncEventHandler):
     """Event handler for clients."""
 
     def __init__(
@@ -84,7 +94,7 @@ class TransformersWhisperEventHandler(AsyncEventHandler):
         wyoming_info: Info,
         language: Optional[str],
         beam_size: int,
-        model: TransformersWhisperModel,
+        model: SherpaModel,
         model_lock: asyncio.Lock,
         *args,
         **kwargs,

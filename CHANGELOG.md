@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add support for `sherpa-onnx` and Nvidia's parakeet model
+- Add `--stt-library` to select speech-to-text library
+- Default `--model` to "auto" (prefer parakeet)
+
 ## 2.5.0
 
 - Add support for HuggingFace transformers Whisper models (--use-transformers)

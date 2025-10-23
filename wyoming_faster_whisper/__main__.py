@@ -5,14 +5,14 @@ import logging
 import platform
 import re
 from functools import partial
-from typing import Any
+from typing import Any, Optional
 
 import faster_whisper
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
 from wyoming.server import AsyncServer
 
 from . import __version__
-from .handler import FasterWhisperEventHandler
+from .const import SttLibrary, PARAKEET_LANGUAGES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,12 +20,10 @@ _LOGGER = logging.getLogger(__name__)
 async def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--model",
-        required=True,
-        help="Name of faster-whisper model to use (or auto)",
-    )
     parser.add_argument("--uri", required=True, help="unix:// or tcp://")
+    parser.add_argument(
+        "--model", default="auto", help="Name of model to use (or auto)"
+    )
     parser.add_argument(
         "--data-dir",
         required=True,
@@ -61,9 +59,10 @@ async def main() -> None:
         help="Optional text to provide as a prompt for the first window",
     )
     parser.add_argument(
-        "--use-transformers",
-        action="store_true",
-        help="Use HuggingFace transformers library (requires transformers extras)",
+        "--stt-library",
+        choices=(lib.value for lib in SttLibrary),
+        default=SttLibrary.AUTO,
+        help="Set library to use for speech-to-text (may require extra dependencies)",
     )
     parser.add_argument(
         "--local-files-only",
@@ -92,11 +91,24 @@ async def main() -> None:
     )
     _LOGGER.debug(args)
 
-    # Automatic configuration for ARM
+    # Automatic configuration
+    stt_library = SttLibrary(args.stt_library)
+    if stt_library == SttLibrary.AUTO:
+        if args.language in ("en", "auto"):
+            # Prefer parakeet
+            try:
+                from .sherpa_handler import SherpaModel
+
+                stt_library = SttLibrary.SHERPA
+            except ImportError:
+                stt_library = SttLibrary.FASTER_WHISPER
+
+        _LOGGER.debug("Speech-to-text library automatically selected: %s", stt_library)
+
     machine = platform.machine().lower()
     is_arm = ("arm" in machine) or ("aarch" in machine)
     if args.model == "auto":
-        args.model = "tiny-int8" if is_arm else "base-int8"
+        args.model = guess_model(stt_library, args.language, is_arm)
         _LOGGER.debug("Model automatically selected: %s", args.model)
 
     if args.beam_size <= 0:
@@ -136,7 +148,14 @@ async def main() -> None:
                             url="https://huggingface.co/Systran",
                         ),
                         installed=True,
-                        languages=faster_whisper.tokenizer._LANGUAGE_CODES,  # pylint: disable=protected-access
+                        languages=sorted(
+                            list(
+                                # pylint: disable=protected-access
+                                set(faster_whisper.tokenizer._LANGUAGE_CODES).union(
+                                    PARAKEET_LANGUAGES
+                                )
+                            )
+                        ),
                         version=faster_whisper.__version__,
                     )
                 ],
@@ -148,7 +167,12 @@ async def main() -> None:
     _LOGGER.debug("Loading %s", args.model)
     whisper_model: Any = None
 
-    if args.use_transformers:
+    if stt_library == SttLibrary.SHERPA:
+        # Use Sherpa ONNX with nemo
+        from .sherpa_handler import SherpaModel
+
+        whisper_model = SherpaModel(args.model, args.download_dir)
+    elif stt_library == SttLibrary.TRANSFORMERS:
         # Use HuggingFace transformers
         from .transformers_whisper import TransformersWhisperModel
 
@@ -168,7 +192,20 @@ async def main() -> None:
     _LOGGER.info("Ready")
     model_lock = asyncio.Lock()
 
-    if args.use_transformers:
+    if stt_library == SttLibrary.SHERPA:
+        from .sherpa_handler import SherpaEventHandler
+
+        await server.run(
+            partial(
+                SherpaEventHandler,
+                wyoming_info,
+                args.language,
+                args.beam_size,
+                whisper_model,
+                model_lock,
+            )
+        )
+    elif stt_library == SttLibrary.TRANSFORMERS:
         # Use HuggingFace transformers
         from .transformers_whisper import (
             TransformersWhisperEventHandler,
@@ -189,7 +226,9 @@ async def main() -> None:
             )
         )
     else:
-        # Use faster-whisper
+        # faster-whisper
+        from .faster_whisper_handler import FasterWhisperEventHandler
+
         assert isinstance(whisper_model, faster_whisper.WhisperModel)
         await server.run(
             partial(
@@ -201,6 +240,38 @@ async def main() -> None:
                 initial_prompt=args.initial_prompt,
             )
         )
+
+
+# -----------------------------------------------------------------------------
+
+
+def guess_model(stt_library: SttLibrary, language: Optional[str], is_arm: bool) -> str:
+    """Automatically guess STT model id."""
+    if stt_library == SttLibrary.SHERPA:
+        if language == "en":
+            return "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8"
+
+        # Non-English
+        return "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8"
+
+    if stt_library == SttLibrary.TRANSFORMERS:
+        if language == "en":
+            if is_arm:
+                return "openai/whisper-tiny.en"
+
+            return "openai/whisper-base.en"
+
+        # Non-English
+        if is_arm:
+            return "openai/whisper-tiny"
+
+        return "openai/whisper-base"
+
+    # faster-whisper
+    if is_arm:
+        return "tiny-int8"
+
+    return "base-int8"
 
 
 # -----------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 - Add support for `sherpa-onnx` and Nvidia's parakeet model
 - Add `--stt-library` to select speech-to-text library
 - Default `--model` to "auto" (prefer parakeet)
+- Default `--language` to "auto"
 
 ## 2.5.0
 

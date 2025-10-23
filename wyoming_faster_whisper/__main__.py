@@ -41,7 +41,8 @@ async def main() -> None:
     )
     parser.add_argument(
         "--language",
-        help="Default language to set for transcription",
+        default="auto",
+        help="Default language to set for transcription (default: auto)",
     )
     parser.add_argument(
         "--compute-type",
@@ -51,12 +52,12 @@ async def main() -> None:
     parser.add_argument(
         "--beam-size",
         type=int,
-        default=5,
+        default=0,
         help="Size of beam during decoding (0 for auto)",
     )
     parser.add_argument(
         "--initial-prompt",
-        help="Optional text to provide as a prompt for the first window",
+        help="Optional text to provide as a prompt for the first window (faster-whisper only)",
     )
     parser.add_argument(
         "--stt-library",

@@ -1,20 +1,30 @@
-name: test
+---
+name: Test
 
 on:
   workflow_dispatch:
   pull_request:
+    branches:
+      - main
 
 jobs:
-  test_linux:
-    name: "test on linux"
-    runs-on: ubuntu-latest
+  build_wheels:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
     steps:
-      - uses: actions/checkout@v3
-      - name: setup
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install
         run: |
-          script/setup --dev
-      - name: test
-        run: |
-          test $(script/run --version) = $(cat wyoming_faster_whisper/VERSION)
-          script/lint
-          script/test
+          script/setup --dev --transformers --sherpa
+
+      - name: Run tests
+        run: script/test

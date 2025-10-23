@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 3.0.0
 
 - Add support for `sherpa-onnx` and Nvidia's parakeet model
 - Add `--stt-library` to select speech-to-text library

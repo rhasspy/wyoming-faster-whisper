@@ -9,7 +9,7 @@ from typing import Any, Optional
 
 import faster_whisper
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
-from wyoming.server import AsyncServer
+from wyoming.server import AsyncServer, AsyncTcpServer
 
 from . import __version__
 from .const import PARAKEET_LANGUAGES, SttLibrary
@@ -21,6 +21,14 @@ async def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--uri", required=True, help="unix:// or tcp://")
+    #
+    parser.add_argument(
+        "--zeroconf",
+        nargs="?",
+        const="faster-whisper",
+        help="Enable discovery over zeroconf with optional name (default: faster-whisper)",
+    )
+    #
     parser.add_argument(
         "--model", default="auto", help="Name of model to use (or auto)"
     )
@@ -190,6 +198,20 @@ async def main() -> None:
         )
 
     server = AsyncServer.from_uri(args.uri)
+
+    if args.zeroconf:
+        if not isinstance(server, AsyncTcpServer):
+            raise ValueError("Zeroconf requires tcp:// uri")
+
+        from wyoming.zeroconf import HomeAssistantZeroconf
+
+        tcp_server: AsyncTcpServer = server
+        hass_zeroconf = HomeAssistantZeroconf(
+            name=args.zeroconf, port=tcp_server.port, host=tcp_server.host
+        )
+        await hass_zeroconf.register_server()
+        _LOGGER.debug("Zeroconf discovery enabled")
+
     _LOGGER.info("Ready")
     model_lock = asyncio.Lock()
 
@@ -215,7 +237,6 @@ async def main() -> None:
 
         assert isinstance(whisper_model, TransformersWhisperModel)
 
-        # TODO: initial prompt
         await server.run(
             partial(
                 TransformersWhisperEventHandler,

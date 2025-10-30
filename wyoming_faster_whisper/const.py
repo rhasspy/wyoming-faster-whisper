@@ -10,6 +10,7 @@ class SttLibrary(str, Enum):
     FASTER_WHISPER = "faster-whisper"
     TRANSFORMERS = "transformers"
     SHERPA = "sherpa"
+    ONNX_ASR = "onnx-asr"
 
 
 PARAKEET_LANGUAGES = {

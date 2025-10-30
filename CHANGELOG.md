@@ -3,6 +3,7 @@
 ## 3.0.0
 
 - Add support for `sherpa-onnx` and Nvidia's parakeet model
+- Add support for [GigaAM](https://github.com/salute-developers/GigaAM) for Russian via [`onnx-asr`](https://github.com/istupakov/onnx-asr)
 - Add `--stt-library` to select speech-to-text library (deprecate `--use-transformers`)
 - Default `--model` to "auto" (prefer parakeet)
 - Add Docker build here

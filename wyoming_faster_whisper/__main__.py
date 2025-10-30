@@ -117,6 +117,14 @@ async def main() -> None:
                 stt_library = SttLibrary.SHERPA
             except ImportError:
                 stt_library = SttLibrary.FASTER_WHISPER
+        elif args.language == "ru":
+            # Prefer GigaAM via onnx-asr
+            try:
+                from .sherpa_handler import SherpaModel
+
+                stt_library = SttLibrary.ONNX_ASR
+            except ImportError:
+                stt_library = SttLibrary.FASTER_WHISPER
 
         _LOGGER.debug("Speech-to-text library automatically selected: %s", stt_library)
 
@@ -194,6 +202,13 @@ async def main() -> None:
         whisper_model = TransformersWhisperModel(
             args.model, args.download_dir, args.local_files_only
         )
+    elif stt_library == SttLibrary.ONNX_ASR:
+        # Use onnx-asr
+        from .onnx_asr_handler import OnnxAsrModel
+
+        whisper_model = OnnxAsrModel(
+            args.model, args.download_dir, args.local_files_only
+        )
     else:
         # Use faster-whisper
         whisper_model = faster_whisper.WhisperModel(
@@ -254,6 +269,22 @@ async def main() -> None:
                 model_lock,
             )
         )
+    elif stt_library == SttLibrary.ONNX_ASR:
+        # Use onnx-asr
+        from .onnx_asr_handler import OnnxAsrEventHandler, OnnxAsrModel
+
+        assert isinstance(whisper_model, OnnxAsrModel)
+
+        await server.run(
+            partial(
+                OnnxAsrEventHandler,
+                wyoming_info,
+                args.language,
+                args.beam_size,
+                whisper_model,
+                model_lock,
+            )
+        )
     else:
         # faster-whisper
         from .faster_whisper_handler import FasterWhisperEventHandler
@@ -295,6 +326,9 @@ def guess_model(stt_library: SttLibrary, language: Optional[str], is_arm: bool) 
             return "openai/whisper-tiny"
 
         return "openai/whisper-base"
+
+    if stt_library == SttLibrary.ONNX_ASR:
+        return "gigaam-v2-rnnt"
 
     # faster-whisper
     if is_arm:

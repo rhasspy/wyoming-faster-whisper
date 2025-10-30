@@ -75,3 +75,6 @@ transformers = [
 sherpa = [
     "sherpa-onnx==1.12.15",
 ]
+onnx_asr = [
+    "onnx-asr[cpu,hub]==0.7.0",
+]

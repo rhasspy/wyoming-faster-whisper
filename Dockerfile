@@ -23,7 +23,7 @@ RUN \
     \
     && .venv/bin/pip3 install --no-cache-dir \
         --extra-index-url https://www.piwheels.org/simple \
-        -e '.[transformers,sherpa]' \
+        -e '.[transformers,sherpa,onnx-asr]' \
     \
     && rm -rf /var/lib/apt/lists/*
 

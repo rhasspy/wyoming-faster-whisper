@@ -2,6 +2,7 @@
 name: Release (DockerHub + GitHub)
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*.*.*" # e.g. v1.2.3

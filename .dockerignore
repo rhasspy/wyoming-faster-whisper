@@ -1,0 +1,4 @@
+*
+!wyoming_faster_whisper/*.py
+!pyproject.toml
+!docker_run.sh

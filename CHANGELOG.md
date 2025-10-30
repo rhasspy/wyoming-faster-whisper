@@ -3,8 +3,9 @@
 ## 3.0.0
 
 - Add support for `sherpa-onnx` and Nvidia's parakeet model
-- Add `--stt-library` to select speech-to-text library
+- Add `--stt-library` to select speech-to-text library (deprecate `--use-transformers`)
 - Default `--model` to "auto" (prefer parakeet)
+- Add Docker build here
 - Default `--language` to "auto"
 - Add `--cpu-threads` for faster-whisper (@Zerwin)
 

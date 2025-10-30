@@ -37,6 +37,8 @@ class SherpaModel:
         if not model_dir.exists():
             url = _URL_FORMAT.format(model_id=model_id)
             _LOGGER.info("Downloading %s", url)
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
             try:
                 # Download/extract to cache dir.
                 # We assume that the .tar.bz2 contains a directory named after

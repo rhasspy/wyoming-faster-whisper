@@ -64,6 +64,12 @@ async def main() -> None:
         help="Size of beam during decoding (0 for auto)",
     )
     parser.add_argument(
+        "--cpu-threads",
+        default=4,
+        type=int,
+        help="Number of CPU threads to use for inference (default: 4, faster-whisper ony)",
+    )
+    parser.add_argument(
         "--initial-prompt",
         help="Optional text to provide as a prompt for the first window (faster-whisper only)",
     )
@@ -195,6 +201,7 @@ async def main() -> None:
             download_root=args.download_dir,
             device=args.device,
             compute_type=args.compute_type,
+            cpu_threads=args.cpu_threads,
         )
 
     server = AsyncServer.from_uri(args.uri)

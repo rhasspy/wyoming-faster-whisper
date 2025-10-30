@@ -6,6 +6,7 @@
 - Add `--stt-library` to select speech-to-text library
 - Default `--model` to "auto" (prefer parakeet)
 - Default `--language` to "auto"
+- Add `--cpu-threads` for faster-whisper (@Zerwin)
 
 ## 2.5.0
 

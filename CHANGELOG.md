@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.1
+
+- Fix model auto selection logic
+
 ## 3.0.0
 
 - Add support for `sherpa-onnx` and Nvidia's parakeet model

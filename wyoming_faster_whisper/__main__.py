@@ -12,7 +12,7 @@ from wyoming.info import AsrModel, AsrProgram, Attribution, Info
 from wyoming.server import AsyncServer, AsyncTcpServer
 
 from . import __version__
-from .const import PARAKEET_LANGUAGES, SttLibrary
+from .const import AUTO_LANGUAGE, AUTO_MODEL, PARAKEET_LANGUAGES, SttLibrary
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ async def main() -> None:
     )
     #
     parser.add_argument(
-        "--model", default="auto", help="Name of model to use (or auto)"
+        "--model", default=AUTO_MODEL, help=f"Name of model to use (or {AUTO_MODEL})"
     )
     parser.add_argument(
         "--data-dir",
@@ -49,8 +49,8 @@ async def main() -> None:
     )
     parser.add_argument(
         "--language",
-        default="auto",
-        help="Default language to set for transcription (default: auto)",
+        default=AUTO_LANGUAGE,
+        help=f"Default language to set for transcription (default: {AUTO_LANGUAGE})",
     )
     parser.add_argument(
         "--compute-type",
@@ -109,28 +109,32 @@ async def main() -> None:
     # Automatic configuration
     stt_library = SttLibrary(args.stt_library)
     if stt_library == SttLibrary.AUTO:
-        if args.language in ("en", "auto"):
-            # Prefer parakeet
-            try:
-                from .sherpa_handler import SherpaModel
+        if args.model == AUTO_MODEL:
+            if args.language in ("en", AUTO_LANGUAGE):
+                # Prefer parakeet
+                try:
+                    from .sherpa_handler import SherpaModel
 
-                stt_library = SttLibrary.SHERPA
-            except ImportError:
-                stt_library = SttLibrary.FASTER_WHISPER
-        elif args.language == "ru":
-            # Prefer GigaAM via onnx-asr
-            try:
-                from .sherpa_handler import SherpaModel
+                    stt_library = SttLibrary.SHERPA
+                except ImportError:
+                    stt_library = SttLibrary.FASTER_WHISPER
+            elif args.language == "ru":
+                # Prefer GigaAM via onnx-asr
+                try:
+                    from .sherpa_handler import SherpaModel
 
-                stt_library = SttLibrary.ONNX_ASR
-            except ImportError:
-                stt_library = SttLibrary.FASTER_WHISPER
+                    stt_library = SttLibrary.ONNX_ASR
+                except ImportError:
+                    stt_library = SttLibrary.FASTER_WHISPER
+        else:
+            # Default to faster-whisper if model is provided
+            stt_library = SttLibrary.FASTER_WHISPER
 
         _LOGGER.debug("Speech-to-text library automatically selected: %s", stt_library)
 
     machine = platform.machine().lower()
     is_arm = ("arm" in machine) or ("aarch" in machine)
-    if args.model == "auto":
+    if args.model == AUTO_MODEL:
         args.model = guess_model(stt_library, args.language, is_arm)
         _LOGGER.debug("Model automatically selected: %s", args.model)
 
@@ -147,8 +151,8 @@ async def main() -> None:
         model_name = f"{model_size}-int8"
         args.model = f"rhasspy/faster-whisper-{model_name}"
 
-    if args.language == "auto":
-        # Whisper does not understand "auto"
+    if args.language == AUTO_LANGUAGE:
+        # Whisper does not understand auto
         args.language = None
 
     wyoming_info = Info(

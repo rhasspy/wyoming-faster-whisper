@@ -5,7 +5,7 @@ ARG TARGETVARIANT
 # Install faster-whisper
 WORKDIR /usr/src
 
-COPY ./ ./
+COPY ./pyproject.toml ./
 RUN \
     apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -26,6 +26,8 @@ RUN \
         -e '.[transformers,sherpa,onnx-asr]' \
     \
     && rm -rf /var/lib/apt/lists/*
+
+COPY ./ ./
 
 EXPOSE 10400
 

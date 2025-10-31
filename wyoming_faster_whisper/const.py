@@ -13,6 +13,9 @@ class SttLibrary(str, Enum):
     ONNX_ASR = "onnx-asr"
 
 
+AUTO_LANGUAGE = "auto"
+AUTO_MODEL = "auto"
+
 PARAKEET_LANGUAGES = {
     "bg",
     "hr",

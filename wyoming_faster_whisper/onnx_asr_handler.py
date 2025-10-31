@@ -63,7 +63,9 @@ class OnnxAsrModel:
         if language:
             recognize_kwargs["language"] = language
 
-        text = self.onnx_model.recognize(audio_array, **recognize_kwargs)
+        text = self.onnx_model.recognize(  # type: ignore[call-overload]
+            audio_array, sample_rate=_RATE, **recognize_kwargs
+        )
         return text
 
 

@@ -30,10 +30,9 @@ The `--model` can also be a HuggingFace model like `Systran/faster-distil-whispe
 
 ``` sh
 docker run -it -p 10300:10300 -v /path/to/local/data:/data rhasspy/wyoming-whisper \
-    --model tiny-int8 --language en
+    --data-dir /data --model tiny-int8 --language en
 ```
 
-**NOTE**: Models are downloaded temporarily to the `HF_HUB_CACHE` directory, which defaults to `~/.cache/huggingface/hub`.
-You may need to adjust this environment variable when using a read-only root filesystem (e.g., `HF_HUB_CACHE=/tmp`).
+**NOTE**: Models are downloaded to the first `--data-dir` directory.
 
 [Source](https://github.com/rhasspy/wyoming-addons/tree/master/whisper)

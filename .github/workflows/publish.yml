@@ -120,9 +120,11 @@ jobs:
           path: dist
 
       - name: Install wheel
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
         run: |
           python -m pip install pytest pytest-asyncio
-          python -m pip install --no-index --only-binary :all: --find-links dist/ wyoming-faster-whisper
+          python -m pip install --find-links dist/ wyoming-faster-whisper=="${TAG}"
 
       - name: Test wheel
         run: |

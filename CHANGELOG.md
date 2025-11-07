@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.2
+
+- Set `--data-dir /data` in Docker run script
+
 ## 3.0.1
 
 - Fix model auto selection logic

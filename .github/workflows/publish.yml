@@ -124,7 +124,7 @@ jobs:
           TAG: ${{ needs.build.outputs.tag }}
         run: |
           python -m pip install pytest pytest-asyncio
-          python -m pip install --find-links dist/ wyoming-faster-whisper=="${TAG}"
+          python -m pip install --find-links dist/ wyoming-faster-whisper[transformers,sherpa]=="${TAG}"
 
       - name: Test wheel
         run: |

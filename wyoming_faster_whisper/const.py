@@ -11,6 +11,7 @@ class SttLibrary(str, Enum):
     TRANSFORMERS = "transformers"
     SHERPA = "sherpa"
     ONNX_ASR = "onnx-asr"
+    WHISPER = "whisper"
 
 
 AUTO_LANGUAGE = "auto"

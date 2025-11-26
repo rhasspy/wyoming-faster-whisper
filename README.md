@@ -38,3 +38,32 @@ docker run -it -p 10300:10300 -v /path/to/local/data:/data rhasspy/wyoming-whisp
 **NOTE**: Models are downloaded to `/data`, so make sure this points to a Docker volume.
 
 [Source](https://github.com/rhasspy/wyoming-addons/tree/master/whisper)
+
+## Running on Intel GPUs
+
+This may not be the only way to run a server that makes use of an Intel GPU, but
+it is known to work.
+
+This method uses the [OpenAI Whisper](https://github.com/openai/whisper) library
+for inference, which is generally not as fast as Faster Whisper, but it does use
+PyTorch, which is able to run models on Intel GPUs.
+
+After running `scripts/setup`, activate the Python virtual environment created
+by it. This will ensure that the following steps install Python packages within 
+it.
+
+```sh
+source .venv/bin/activate
+```
+
+Follow the steps at https://docs.pytorch.org/docs/stable/notes/get_start_xpu.html
+
+Install OpenAI Whisper:
+
+```sh
+pip install openai-whisper
+```
+
+When you run `scripts/run` be sure to pass the `--stt-library whisper` flag to
+have it use the OpenAI Whisper library. And pass `--device xpu` to run the model
+on an Intel GPU.

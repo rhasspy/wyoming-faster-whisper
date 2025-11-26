@@ -213,6 +213,16 @@ async def main() -> None:
         whisper_model = OnnxAsrModel(
             args.model, args.download_dir, args.local_files_only
         )
+    elif stt_library == SttLibrary.WHISPER:
+        # Use OpenAI Whisper
+        import whisper
+
+        whisper_model = whisper.load_model(
+            args.model,
+            device=args.device,
+            download_root=args.download_dir,
+            in_memory=True,
+        )
     else:
         # Use faster-whisper
         whisper_model = faster_whisper.WhisperModel(
@@ -287,6 +297,21 @@ async def main() -> None:
                 args.beam_size,
                 whisper_model,
                 model_lock,
+            )
+        )
+    elif stt_library == SttLibrary.WHISPER:
+        # Use OpenAI Whisper
+        from .whisper_handler import WhisperEventHandler
+
+        assert isinstance(whisper_model, whisper.Whisper)
+
+        await server.run(
+            partial(
+                WhisperEventHandler,
+                wyoming_info,
+                whisper_model,
+                model_lock,
+                args.language,
             )
         )
     else:

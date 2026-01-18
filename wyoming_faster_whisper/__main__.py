@@ -67,11 +67,34 @@ async def main() -> None:
         "--cpu-threads",
         default=4,
         type=int,
-        help="Number of CPU threads to use for inference (default: 4, faster-whisper ony)",
+        help="Number of CPU threads to use for inference (default: 4, faster-whisper only)",
     )
     parser.add_argument(
         "--initial-prompt",
         help="Optional text to provide as a prompt for the first window (faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-filter",
+        action="store_true",
+        help="Enable Silero VAD to filter out non-speech which can reduce hallucinations (default: false, faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-threshold",
+        type=float,
+        default=0.5,
+        help="VAD speech probability threshold (default: 0.5, faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-min-speech-ms",
+        type=int,
+        default=250,
+        help="VAD minimum speech duration in ms (default: 250, faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-min-silence-ms",
+        type=int,
+        default=2000,
+        help="VAD minimum silence duration in ms to split (default: 2000, faster-whisper only)",
     )
     parser.add_argument(
         "--stt-library",

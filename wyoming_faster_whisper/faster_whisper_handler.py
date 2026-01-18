@@ -67,11 +67,21 @@ class FasterWhisperEventHandler(AsyncEventHandler):
             self._wav_file = None
 
             async with self.model_lock:
+                vad_parameters = None
+                if self.cli_args.vad_filter:
+                    vad_parameters = {
+                        "threshold": self.cli_args.vad_threshold,
+                        "min_speech_duration_ms": self.cli_args.vad_min_speech_ms,
+                        "min_silence_duration_ms": self.cli_args.vad_min_silence_ms,
+                    }
+
                 segments, _info = self.model.transcribe(
                     self._wav_path,
                     beam_size=self.cli_args.beam_size,
                     language=self._language,
                     initial_prompt=self.initial_prompt,
+                    vad_filter=self.cli_args.vad_filter,
+                    vad_parameters=vad_parameters,
                 )
 
             text = " ".join(segment.text for segment in segments)

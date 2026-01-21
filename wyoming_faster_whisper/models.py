@@ -5,7 +5,7 @@ import logging
 import platform
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from .const import PARAKEET_LANGUAGES, SttLibrary, Transcriber
 from .faster_whisper_handler import FasterWhisperTranscriber
@@ -30,6 +30,7 @@ class ModelLoader:
         beam_size: int,
         cpu_threads: int,
         initial_prompt: Optional[str],
+        vad_parameters: Optional[Dict[str, Any]],
     ) -> None:
         self.preferred_stt_library = preferred_stt_library
         self.preferred_language = preferred_language
@@ -44,6 +45,7 @@ class ModelLoader:
         self.beam_size = beam_size
         self.cpu_threads = cpu_threads
         self.initial_prompt = initial_prompt
+        self.vad_parameters = vad_parameters
 
         self._transcriber: Dict[TRANSCRIBER_KEY, Transcriber] = {}
         self._transcriber_lock: Dict[TRANSCRIBER_KEY, asyncio.Lock] = defaultdict(
@@ -153,6 +155,7 @@ class ModelLoader:
                     device=self.device,
                     compute_type=self.compute_type,
                     cpu_threads=self.cpu_threads,
+                    vad_parameters=self.vad_parameters,
                 )
 
             self._transcriber[key] = transcriber

@@ -5,6 +5,7 @@ import logging
 import platform
 import re
 from functools import partial
+from typing import Any, Dict, Optional
 
 import faster_whisper
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
@@ -73,6 +74,29 @@ async def main() -> None:
     parser.add_argument(
         "--initial-prompt",
         help="Optional text to provide as a prompt for the first window (faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-filter",
+        action="store_true",
+        help="Enable Silero VAD to filter out non-speech which can reduce hallucinations (default: false, faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-threshold",
+        type=float,
+        default=0.5,
+        help="VAD speech probability threshold (default: 0.5, faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-min-speech-ms",
+        type=int,
+        default=250,
+        help="VAD minimum speech duration in ms (default: 250, faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-min-silence-ms",
+        type=int,
+        default=2000,
+        help="VAD minimum silence duration in ms to split (default: 2000, faster-whisper only)",
     )
     parser.add_argument(
         "--stt-library",
@@ -167,6 +191,14 @@ async def main() -> None:
         ],
     )
 
+    vad_parameters: Optional[Dict[str, Any]] = None
+    if args.vad_filter:
+        vad_parameters = {
+            "threshold": args.vad_threshold,
+            "min_speech_duration_ms": args.vad_min_speech_ms,
+            "min_silence_duration_ms": args.vad_min_silence_ms,
+        }
+
     loader = ModelLoader(
         preferred_stt_library=args.stt_library,
         preferred_language=args.language,
@@ -178,6 +210,7 @@ async def main() -> None:
         beam_size=args.beam_size,
         cpu_threads=args.cpu_threads,
         initial_prompt=args.initial_prompt,
+        vad_parameters=vad_parameters,
     )
 
     # Load model

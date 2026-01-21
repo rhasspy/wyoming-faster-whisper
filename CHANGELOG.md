@@ -3,6 +3,7 @@
 ## 3.1.0
 
 - Refactor to dynamically load models
+- Add `--vad-filter`, `--vad-threshold`, `--vad-min-speech-ms`, `--vad-min-silence-ms` (thanks @lmoe)
 
 ## 3.0.2
 

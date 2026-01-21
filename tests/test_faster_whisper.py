@@ -40,6 +40,7 @@ async def test_faster_whisper(stt_library: str, model: str) -> None:
         str(_LOCAL_DIR),
         "--language",
         "en",
+        "--vad-filter",
         stdin=PIPE,
         stdout=PIPE,
     )

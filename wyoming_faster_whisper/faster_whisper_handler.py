@@ -1,7 +1,7 @@
 """Event handler for clients of the server."""
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import faster_whisper
 
@@ -18,7 +18,11 @@ class FasterWhisperTranscriber(Transcriber):
         device: str = "cpu",
         compute_type: str = "default",
         cpu_threads: int = 4,
+        vad_parameters: Optional[Dict[str, Any]] = None,
     ) -> None:
+        self.vad_filter = vad_parameters is not None
+        self.vad_parameters = vad_parameters
+
         self.model = faster_whisper.WhisperModel(
             model_id,
             download_root=str(cache_dir),
@@ -39,6 +43,8 @@ class FasterWhisperTranscriber(Transcriber):
             beam_size=beam_size,
             language=language,
             initial_prompt=initial_prompt,
+            vad_filter=self.vad_filter,
+            vad_parameters=self.vad_parameters,
         )
 
         text = " ".join(segment.text for segment in segments)

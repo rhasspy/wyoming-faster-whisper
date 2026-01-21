@@ -1,4 +1,19 @@
-FROM debian:bookworm-slim
+# This adds a conditional build step. Use `--build-arg GPU=1` to build with CUDA/CUDNN support,
+# omit it to only support CPU.  
+
+ARG GPU=0
+
+FROM debian:bookworm-slim AS base-cpu
+FROM base-cpu AS build-0
+
+FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04 AS base-gpu
+FROM base-gpu AS build-1
+
+# Conditional CPU/GPU image selection 
+FROM build-${GPU} AS final
+
+# Docker ARG's don't survive FROM statements, hence we need to declare it a second time. 
+ARG GPU
 ARG TARGETARCH
 ARG TARGETVARIANT
 
@@ -17,8 +32,13 @@ RUN \
     && .venv/bin/pip3 install --no-cache-dir -U \
         setuptools \
         wheel \
+    && if [ "$GPU" = "1" ]; then \
+        TORCH_INDEX="https://download.pytorch.org/whl/cu126"; \
+    else \
+        TORCH_INDEX="https://download.pytorch.org/whl/cpu"; \
+    fi \
     && .venv/bin/pip3 install --no-cache-dir \
-        --extra-index-url 'https://download.pytorch.org/whl/cpu' \
+        --extra-index-url "$TORCH_INDEX" \
         'torch==2.6.0' \
     \
     && .venv/bin/pip3 install --no-cache-dir \

@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.1.0
+
+- Refactor to dynamically load models
+
 ## 3.0.2
 
 - Set `--data-dir /data` in Docker run script

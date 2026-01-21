@@ -1,6 +1,9 @@
 """Constants."""
 
+from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
+from typing import Optional, Union
 
 
 class SttLibrary(str, Enum):
@@ -43,3 +46,17 @@ PARAKEET_LANGUAGES = {
     "ru",
     "uk",
 }
+
+
+class Transcriber(ABC):
+    """Base class for transcribers."""
+
+    @abstractmethod
+    def transcribe(
+        self,
+        wav_path: Union[str, Path],
+        language: Optional[str],
+        beam_size: int = 5,
+        initial_prompt: Optional[str] = None,
+    ) -> str:
+        pass

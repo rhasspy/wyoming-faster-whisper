@@ -5,7 +5,6 @@ import logging
 import platform
 import re
 from functools import partial
-from typing import Any, Optional
 
 import faster_whisper
 from wyoming.info import AsrModel, AsrProgram, Attribution, Info
@@ -13,6 +12,8 @@ from wyoming.server import AsyncServer, AsyncTcpServer
 
 from . import __version__
 from .const import AUTO_LANGUAGE, AUTO_MODEL, PARAKEET_LANGUAGES, SttLibrary
+from .dispatch_handler import DispatchEventHandler
+from .models import ModelLoader
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -106,37 +107,10 @@ async def main() -> None:
     )
     _LOGGER.debug(args)
 
-    # Automatic configuration
-    stt_library = SttLibrary(args.stt_library)
-    if stt_library == SttLibrary.AUTO:
-        if args.model == AUTO_MODEL:
-            if args.language in ("en", AUTO_LANGUAGE):
-                # Prefer parakeet
-                try:
-                    from .sherpa_handler import SherpaModel
-
-                    stt_library = SttLibrary.SHERPA
-                except ImportError:
-                    stt_library = SttLibrary.FASTER_WHISPER
-            elif args.language == "ru":
-                # Prefer GigaAM via onnx-asr
-                try:
-                    from .sherpa_handler import SherpaModel
-
-                    stt_library = SttLibrary.ONNX_ASR
-                except ImportError:
-                    stt_library = SttLibrary.FASTER_WHISPER
-        else:
-            # Default to faster-whisper if model is provided
-            stt_library = SttLibrary.FASTER_WHISPER
-
-        _LOGGER.debug("Speech-to-text library automatically selected: %s", stt_library)
+    args.stt_library = SttLibrary(args.stt_library)
 
     machine = platform.machine().lower()
     is_arm = ("arm" in machine) or ("aarch" in machine)
-    if args.model == AUTO_MODEL:
-        args.model = guess_model(stt_library, args.language, is_arm)
-        _LOGGER.debug("Model automatically selected: %s", args.model)
 
     if args.beam_size <= 0:
         args.beam_size = 1 if is_arm else 5
@@ -144,16 +118,19 @@ async def main() -> None:
 
     # Resolve model name
     model_name = args.model
-    match = re.match(r"^(tiny|base|small|medium)[.-]int8$", args.model)
-    if match:
+    model_match = re.match(r"^(tiny|base|small|medium)[.-]int8$", args.model)
+    if model_match:
         # Original models re-uploaded to huggingface
-        model_size = match.group(1)
+        model_size = model_match.group(1)
         model_name = f"{model_size}-int8"
         args.model = f"rhasspy/faster-whisper-{model_name}"
 
     if args.language == AUTO_LANGUAGE:
         # Whisper does not understand auto
         args.language = None
+
+    if args.model == AUTO_MODEL:
+        args.model = None
 
     wyoming_info = Info(
         asr=[
@@ -190,38 +167,22 @@ async def main() -> None:
         ],
     )
 
+    loader = ModelLoader(
+        preferred_stt_library=args.stt_library,
+        preferred_language=args.language,
+        download_dir=args.download_dir,
+        local_files_only=args.local_files_only,
+        model=args.model,
+        compute_type=args.compute_type,
+        device=args.device,
+        beam_size=args.beam_size,
+        cpu_threads=args.cpu_threads,
+        initial_prompt=args.initial_prompt,
+    )
+
     # Load model
-    _LOGGER.debug("Loading %s", args.model)
-    whisper_model: Any = None
-
-    if stt_library == SttLibrary.SHERPA:
-        # Use Sherpa ONNX with nemo
-        from .sherpa_handler import SherpaModel  # noqa: F811
-
-        whisper_model = SherpaModel(args.model, args.download_dir)
-    elif stt_library == SttLibrary.TRANSFORMERS:
-        # Use HuggingFace transformers
-        from .transformers_whisper import TransformersWhisperModel
-
-        whisper_model = TransformersWhisperModel(
-            args.model, args.download_dir, args.local_files_only
-        )
-    elif stt_library == SttLibrary.ONNX_ASR:
-        # Use onnx-asr
-        from .onnx_asr_handler import OnnxAsrModel
-
-        whisper_model = OnnxAsrModel(
-            args.model, args.download_dir, args.local_files_only
-        )
-    else:
-        # Use faster-whisper
-        whisper_model = faster_whisper.WhisperModel(
-            args.model,
-            download_root=args.download_dir,
-            device=args.device,
-            compute_type=args.compute_type,
-            cpu_threads=args.cpu_threads,
-        )
+    _LOGGER.debug("Pre-loading transcriber")
+    await loader.load_transcriber()
 
     server = AsyncServer.from_uri(args.uri)
 
@@ -239,106 +200,13 @@ async def main() -> None:
         _LOGGER.debug("Zeroconf discovery enabled")
 
     _LOGGER.info("Ready")
-    model_lock = asyncio.Lock()
-
-    if stt_library == SttLibrary.SHERPA:
-        from .sherpa_handler import SherpaEventHandler
-
-        await server.run(
-            partial(
-                SherpaEventHandler,
-                wyoming_info,
-                args.language,
-                args.beam_size,
-                whisper_model,
-                model_lock,
-            )
+    await server.run(
+        partial(
+            DispatchEventHandler,
+            wyoming_info,
+            loader,
         )
-    elif stt_library == SttLibrary.TRANSFORMERS:
-        # Use HuggingFace transformers
-        from .transformers_whisper import (
-            TransformersWhisperEventHandler,
-            TransformersWhisperModel,
-        )
-
-        assert isinstance(whisper_model, TransformersWhisperModel)
-
-        await server.run(
-            partial(
-                TransformersWhisperEventHandler,
-                wyoming_info,
-                args.language,
-                args.beam_size,
-                whisper_model,
-                model_lock,
-            )
-        )
-    elif stt_library == SttLibrary.ONNX_ASR:
-        # Use onnx-asr
-        from .onnx_asr_handler import OnnxAsrEventHandler, OnnxAsrModel
-
-        assert isinstance(whisper_model, OnnxAsrModel)
-
-        await server.run(
-            partial(
-                OnnxAsrEventHandler,
-                wyoming_info,
-                args.language,
-                args.beam_size,
-                whisper_model,
-                model_lock,
-            )
-        )
-    else:
-        # faster-whisper
-        from .faster_whisper_handler import FasterWhisperEventHandler
-
-        assert isinstance(whisper_model, faster_whisper.WhisperModel)
-        await server.run(
-            partial(
-                FasterWhisperEventHandler,
-                wyoming_info,
-                args,
-                whisper_model,
-                model_lock,
-                initial_prompt=args.initial_prompt,
-            )
-        )
-
-
-# -----------------------------------------------------------------------------
-
-
-def guess_model(stt_library: SttLibrary, language: Optional[str], is_arm: bool) -> str:
-    """Automatically guess STT model id."""
-    if stt_library == SttLibrary.SHERPA:
-        if language == "en":
-            return "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8"
-
-        # Non-English
-        return "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8"
-
-    if stt_library == SttLibrary.TRANSFORMERS:
-        if language == "en":
-            if is_arm:
-                return "openai/whisper-tiny.en"
-
-            return "openai/whisper-base.en"
-
-        # Non-English
-        if is_arm:
-            return "openai/whisper-tiny"
-
-        return "openai/whisper-base"
-
-    if stt_library == SttLibrary.ONNX_ASR:
-        return "gigaam-v2-rnnt"
-
-    # faster-whisper
-    if is_arm:
-        return "tiny-int8"
-
-    return "base-int8"
+    )
 
 
 # -----------------------------------------------------------------------------

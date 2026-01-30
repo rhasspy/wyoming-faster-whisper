@@ -55,8 +55,18 @@ class TransformersTranscriber(Transcriber):
         inputs = self.processor(audio_tensor, sampling_rate=_RATE, return_tensors="pt")
         generate_args = {**inputs, "num_beams": beam_size}
 
+        if initial_prompt:
+            prompt_ids = (
+                self.processor.tokenizer(
+                    initial_prompt, return_tensors="pt", add_special_tokens=False
+                )
+                .input_ids[0]
+                .to(self.model.device)
+            )
+            generate_args["prompt_ids"] = prompt_ids
+
         if language:
-            generate_args["forced_decoder_ids"] = self.processor.get_decoder_prompt_ids(
+            self.processor.tokenizer.set_prefix_tokens(
                 language=language, task="transcribe"
             )
 

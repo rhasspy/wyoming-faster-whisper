@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.1 (unrelased)
+
+- Fix transformers language
+- Add initial prompt to transformers
+
 ## 3.1.0
 
 - Refactor to dynamically load models

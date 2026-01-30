@@ -78,3 +78,6 @@ sherpa = [
 onnx_asr = [
     "onnx-asr[cpu,hub]==0.7.0",
 ]
+zeroconf = [
+    "wyoming[zeroconf]",
+]

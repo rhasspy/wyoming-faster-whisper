@@ -7,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
-from .const import PARAKEET_LANGUAGES, SttLibrary, Transcriber
+from .const import SttLibrary, Transcriber
 from .faster_whisper_handler import FasterWhisperTranscriber
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,8 +94,10 @@ class ModelLoader:
                 if (language == "ru") and has_onnx_asr:
                     # Prefer GigaAM via onnx-asr
                     stt_library = SttLibrary.ONNX_ASR
-                elif (language in PARAKEET_LANGUAGES) and has_sherpa:
-                    # Prefer Parakeet via sherpa
+                elif (language == "en") and has_sherpa:
+                    # Prefer Parakeet via sherpa for English.
+                    # The v3 Parakeet model claims to auto detect other
+                    # languages, but it doesn't work.
                     stt_library = SttLibrary.SHERPA
         elif (
             ((stt_library == SttLibrary.TRANSFORMERS) and (not has_transformers))
@@ -209,6 +211,6 @@ def guess_model(stt_library: SttLibrary, language: Optional[str], is_arm: bool) 
 
     # faster-whisper
     if is_arm:
-        return "tiny-int8"
+        return "rhasspy/faster-whisper-tiny-int8"
 
-    return "base-int8"
+    return "rhasspy/faster-whisper-base-int8"

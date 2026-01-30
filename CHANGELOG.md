@@ -3,7 +3,9 @@
 ## 3.1.0
 
 - Refactor to dynamically load models
+- Only prefer Parakeet for English (other languages don't detect reliably)
 - Add `--vad-filter`, `--vad-threshold`, `--vad-min-speech-ms`, `--vad-min-silence-ms` (thanks @lmoe)
+- Add `zeroconf` to Docker image
 
 ## 3.0.2
 

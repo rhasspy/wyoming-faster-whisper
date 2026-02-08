@@ -22,7 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "wyoming>=1.8,<2",
+    "wyoming[zeroconf]>=1.8,<2",
     "faster-whisper>=1.1.0,<2",
     "requests",  # needed by faster-whisper
 ]

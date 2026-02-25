@@ -23,8 +23,7 @@ classifiers = [
 ]
 dependencies = [
     "wyoming>=1.8,<2",
-    "faster-whisper>=1.1.0,<2",
-    "requests",  # needed by faster-whisper
+    "faster-whisper>=1.2.1,<2",
 ]
 
 [project.urls]

@@ -22,7 +22,12 @@ _URL_FORMAT = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-model
 class SherpaTranscriber(Transcriber):
     """Wrapper for sherpa-onnx model."""
 
-    def __init__(self, model_id: str, cache_dir: Union[str, Path]) -> None:
+    def __init__(
+        self,
+        model_id: str,
+        cache_dir: Union[str, Path],
+        cpu_threads: int = 4,
+    ) -> None:
         """Initialize model."""
         cache_dir = Path(cache_dir)
         model_dir = cache_dir / model_id
@@ -48,6 +53,7 @@ class SherpaTranscriber(Transcriber):
 
         # Load model
         self.recognizer = so.OfflineRecognizer.from_transducer(
+            num_threads=cpu_threads,
             encoder=f"{model_dir}/encoder.int8.onnx",
             decoder=f"{model_dir}/decoder.int8.onnx",
             joiner=f"{model_dir}/joiner.int8.onnx",

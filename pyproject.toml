@@ -72,7 +72,7 @@ transformers = [
     "transformers[torch]==4.52.4",
 ]
 sherpa = [
-    "sherpa-onnx==1.12.15",
+    "sherpa-onnx>=1.12.19,<2",
 ]
 onnx_asr = [
     "onnx-asr[cpu,hub]==0.7.0",

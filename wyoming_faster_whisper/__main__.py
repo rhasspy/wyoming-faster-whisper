@@ -69,7 +69,7 @@ async def main() -> None:
         "--cpu-threads",
         default=4,
         type=int,
-        help="Number of CPU threads to use for inference (default: 4, faster-whisper ony)",
+        help="Number of CPU threads to use for inference (default: 4, faster-whisper and sherpa-onnx)",
     )
     parser.add_argument(
         "--initial-prompt",

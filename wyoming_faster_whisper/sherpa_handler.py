@@ -48,6 +48,7 @@ class SherpaTranscriber(Transcriber):
 
         # Load model
         self.recognizer = so.OfflineRecognizer.from_transducer(
+            num_threads=4,
             encoder=f"{model_dir}/encoder.int8.onnx",
             decoder=f"{model_dir}/decoder.int8.onnx",
             joiner=f"{model_dir}/joiner.int8.onnx",

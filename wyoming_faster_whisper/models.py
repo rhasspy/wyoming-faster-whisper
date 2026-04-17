@@ -134,7 +134,10 @@ class ModelLoader:
                 from .sherpa_handler import SherpaTranscriber  # noqa: F811
 
                 transcriber = SherpaTranscriber(
-                    model, self.download_dir, cpu_threads=self.cpu_threads
+                    model,
+                    self.download_dir,
+                    device=self.device,
+                    cpu_threads=self.cpu_threads,
                 )
             elif stt_library == SttLibrary.ONNX_ASR:
                 from .onnx_asr_handler import OnnxAsrTranscriber  # noqa: F811

@@ -1,9 +1,10 @@
 # Changelog
 
-## 3.1.1 (unrelased)
+## 3.2.0 (unreleased)
 
 - Fix transformers language
 - Add initial prompt to transformers
+- Add `--whisper-task` which can be set to "translate" instead of "transcribe" (`@M4TH1EU`)
 
 ## 3.1.0
 

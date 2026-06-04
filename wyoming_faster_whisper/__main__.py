@@ -76,6 +76,12 @@ async def main() -> None:
         help="Optional text to provide as a prompt for the first window (faster-whisper only)",
     )
     parser.add_argument(
+        "--whisper-task",
+        default="transcribe",
+        help="Task for whisper to do (default: transcribe)",
+        choices=["transcribe", "translate"],
+    )
+    parser.add_argument(
         "--vad-filter",
         action="store_true",
         help="Enable Silero VAD to filter out non-speech which can reduce hallucinations (default: false, faster-whisper only)",
@@ -211,6 +217,7 @@ async def main() -> None:
         cpu_threads=args.cpu_threads,
         initial_prompt=args.initial_prompt,
         vad_parameters=vad_parameters,
+        whisper_task=args.whisper_task,
     )
 
     # Load model

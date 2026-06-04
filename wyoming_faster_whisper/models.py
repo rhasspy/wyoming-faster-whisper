@@ -31,6 +31,7 @@ class ModelLoader:
         cpu_threads: int,
         initial_prompt: Optional[str],
         vad_parameters: Optional[Dict[str, Any]],
+        whisper_task: Optional[str] = None,
     ) -> None:
         self.preferred_stt_library = preferred_stt_library
         self.preferred_language = preferred_language
@@ -46,6 +47,7 @@ class ModelLoader:
         self.cpu_threads = cpu_threads
         self.initial_prompt = initial_prompt
         self.vad_parameters = vad_parameters
+        self.whisper_task = whisper_task
 
         self._transcriber: Dict[TRANSCRIBER_KEY, Transcriber] = {}
         self._transcriber_lock: Dict[TRANSCRIBER_KEY, asyncio.Lock] = defaultdict(
@@ -160,6 +162,7 @@ class ModelLoader:
                     compute_type=self.compute_type,
                     cpu_threads=self.cpu_threads,
                     vad_parameters=self.vad_parameters,
+                    task=self.whisper_task,
                 )
 
             self._transcriber[key] = transcriber

@@ -70,7 +70,7 @@ class DispatchEventHandler(AsyncEventHandler):
         if AudioStop.is_type(event.type):
             _LOGGER.debug("Audio stopped")
 
-            # No audio was received before AudioStop — return empty transcript.
+            # No audio was received before AudioStop â€” return empty transcript.
             # This happens when HA sends AudioStop without any AudioChunk
             # (e.g., VAD detected no speech, or the client disconnected early).
             if self._wav_file is None:

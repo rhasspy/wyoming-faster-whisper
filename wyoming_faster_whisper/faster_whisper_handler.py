@@ -19,9 +19,11 @@ class FasterWhisperTranscriber(Transcriber):
         compute_type: str = "default",
         cpu_threads: int = 4,
         vad_parameters: Optional[Dict[str, Any]] = None,
+        task: Optional[str] = None,
     ) -> None:
         self.vad_filter = vad_parameters is not None
         self.vad_parameters = vad_parameters
+        self.task = task
 
         self.model = faster_whisper.WhisperModel(
             model_id,
@@ -38,14 +40,17 @@ class FasterWhisperTranscriber(Transcriber):
         beam_size: int = 5,
         initial_prompt: Optional[str] = None,
     ) -> str:
-        segments, _info = self.model.transcribe(
-            str(wav_path),
-            beam_size=beam_size,
-            language=language,
-            initial_prompt=initial_prompt,
-            vad_filter=self.vad_filter,
-            vad_parameters=self.vad_parameters,
-        )
 
+        kwargs = {
+            "beam_size": beam_size,
+            "language": language,
+            "initial_prompt": initial_prompt,
+            "vad_filter": self.vad_filter,
+            "vad_parameters": self.vad_parameters,
+        }
+        if self.task:
+            kwargs["task"] = self.task
+
+        segments, _info = self.model.transcribe(str(wav_path), **kwargs)
         text = " ".join(segment.text for segment in segments)
         return text

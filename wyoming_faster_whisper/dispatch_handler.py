@@ -68,15 +68,29 @@ class DispatchEventHandler(AsyncEventHandler):
             return True
 
         if AudioStop.is_type(event.type):
-            _LOGGER.debug("Audio stoppped")
+            _LOGGER.debug("Audio stopped")
+
+            # No audio was received before AudioStop — return empty transcript.
+            # This happens when HA sends AudioStop without any AudioChunk
+            # (e.g., VAD detected no speech, or the client disconnected early).
+            if self._wav_file is None:
+                _LOGGER.warning("AudioStop received with no audio data")
+                await self.write_event(Transcript(text="").event())
+                self._language = None
+                self._transcriber = None
+                self._transcriber_future = None
+                return False
 
             if self._transcriber is None:
                 # Get transcriber that was loading in the background
-                assert self._transcriber_future is not None
+                if self._transcriber_future is None:
+                    _LOGGER.warning("No transcriber available")
+                    await self.write_event(Transcript(text="").event())
+                    self._wav_file.close()
+                    self._wav_file = None
+                    self._language = None
+                    return False
                 self._transcriber = await self._transcriber_future
-
-            assert self._transcriber is not None
-            assert self._wav_file is not None
 
             self._wav_file.close()
             self._wav_file = None

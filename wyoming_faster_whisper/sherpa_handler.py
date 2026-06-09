@@ -26,6 +26,7 @@ class SherpaTranscriber(Transcriber):
         self,
         model_id: str,
         cache_dir: Union[str, Path],
+        device: str = "cpu",
         cpu_threads: int = 4,
     ) -> None:
         """Initialize model."""
@@ -51,6 +52,9 @@ class SherpaTranscriber(Transcriber):
                 shutil.rmtree(model_dir, ignore_errors=True)
                 raise
 
+        provider = "cuda" if device.startswith("cuda") else "cpu"
+        _LOGGER.info("Loading sherpa model with provider=%s", provider)
+
         # Load model
         self.recognizer = so.OfflineRecognizer.from_transducer(
             num_threads=cpu_threads,
@@ -58,7 +62,7 @@ class SherpaTranscriber(Transcriber):
             decoder=f"{model_dir}/decoder.int8.onnx",
             joiner=f"{model_dir}/joiner.int8.onnx",
             tokens=f"{model_dir}/tokens.txt",
-            provider="cpu",
+            provider=provider,
             model_type="nemo_transducer",
         )
 

@@ -12,7 +12,7 @@ from .faster_whisper_handler import FasterWhisperTranscriber
 
 _LOGGER = logging.getLogger(__name__)
 
-TRANSCRIBER_KEY = Tuple[SttLibrary, str]  # model id
+TRANSCRIBER_KEY = Tuple[SttLibrary, str, bool]  # (library, model id, streaming)
 
 
 class ModelLoader:
@@ -32,9 +32,11 @@ class ModelLoader:
         initial_prompt: Optional[str],
         vad_parameters: Optional[Dict[str, Any]],
         whisper_task: Optional[str] = None,
+        sherpa_streaming: bool = False,
     ) -> None:
         self.preferred_stt_library = preferred_stt_library
         self.preferred_language = preferred_language
+        self.sherpa_streaming = sherpa_streaming
 
         self.download_dir = Path(download_dir)
         self.local_files_only = local_files_only
@@ -110,22 +112,28 @@ class ModelLoader:
             stt_library = SttLibrary.FASTER_WHISPER
             _LOGGER.debug("Falling back to faster-whisper (missing dependencies)")
 
+        # Streaming is only supported by the sherpa backend.
+        streaming = self.sherpa_streaming and (stt_library == SttLibrary.SHERPA)
+
         # Select model
         model = self.model
         if model is None:  # auto
             machine = platform.machine().lower()
             is_arm = ("arm" in machine) or ("aarch" in machine)
-            model = guess_model(stt_library, language, is_arm)
+            model = guess_model(stt_library, language, is_arm, streaming=streaming)
 
         _LOGGER.debug(
-            "Selected stt-library '%s' with model '%s'", stt_library.value, model
+            "Selected stt-library '%s' with model '%s' (streaming=%s)",
+            stt_library.value,
+            model,
+            streaming,
         )
 
         # Load transcriber
         assert stt_library != SttLibrary.AUTO
         assert model
 
-        key = (stt_library, model)
+        key = (stt_library, model, streaming)
 
         async with self._transcriber_lock[key]:
             transcriber = self._transcriber.get(key)
@@ -133,11 +141,18 @@ class ModelLoader:
                 return transcriber
 
             if stt_library == SttLibrary.SHERPA:
-                from .sherpa_handler import SherpaTranscriber  # noqa: F811
+                if streaming:
+                    from .sherpa_handler import SherpaStreamingTranscriber  # noqa: F811
 
-                transcriber = SherpaTranscriber(
-                    model, self.download_dir, cpu_threads=self.cpu_threads
-                )
+                    transcriber = SherpaStreamingTranscriber(
+                        model, self.download_dir, cpu_threads=self.cpu_threads
+                    )
+                else:
+                    from .sherpa_handler import SherpaTranscriber  # noqa: F811
+
+                    transcriber = SherpaTranscriber(
+                        model, self.download_dir, cpu_threads=self.cpu_threads
+                    )
             elif stt_library == SttLibrary.ONNX_ASR:
                 from .onnx_asr_handler import OnnxAsrTranscriber  # noqa: F811
 
@@ -189,9 +204,26 @@ class ModelLoader:
         return text
 
 
-def guess_model(stt_library: SttLibrary, language: Optional[str], is_arm: bool) -> str:
+def guess_model(
+    stt_library: SttLibrary,
+    language: Optional[str],
+    is_arm: bool,
+    streaming: bool = False,
+) -> str:
     """Automatically guess STT model id."""
     if stt_library == SttLibrary.SHERPA:
+        if streaming:
+            # Best available streaming (OnlineRecognizer) model. The streaming
+            # zipformers are English-only, so warn for other languages.
+            if language not in (None, "en"):
+                _LOGGER.warning(
+                    "Streaming sherpa models are English-only; pass --model to "
+                    "use a streaming model for language '%s'",
+                    language,
+                )
+
+            return "sherpa-onnx-streaming-zipformer-en-2023-06-26"
+
         if language == "en":
             return "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8"
 

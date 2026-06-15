@@ -1,10 +1,11 @@
 # Changelog
 
-## 3.2.0 (unreleased)
+## 3.2.0
 
 - Fix transformers language
 - Add initial prompt to transformers
 - Add `--whisper-task` which can be set to "translate" instead of "transcribe" (`@M4TH1EU`)
+- Add `--sherpa-streaming` to prefer streaming models (`@pkrahmer`)
 
 ## 3.1.0
 

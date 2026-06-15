@@ -17,15 +17,18 @@ from . import _LOCAL_DIR, _SAMPLES_PER_CHUNK, _START_TIMEOUT, _TRANSCRIBE_TIMEOU
 
 
 @pytest.mark.parametrize(
-    ("stt_library", "model"),
+    ("stt_library", "model", "extra_args"),
     [
-        ("faster-whisper", "base-int8"),
-        ("transformers", "openai/whisper-base.en"),
-        ("sherpa", "auto"),
+        ("faster-whisper", "base-int8", []),
+        ("transformers", "openai/whisper-base.en", []),
+        ("sherpa", "auto", []),
+        ("sherpa", "auto", ["--sherpa-streaming"]),
     ],
 )
 @pytest.mark.asyncio
-async def test_faster_whisper(stt_library: str, model: str) -> None:
+async def test_faster_whisper(
+    stt_library: str, model: str, extra_args: list
+) -> None:
     proc = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
@@ -41,6 +44,7 @@ async def test_faster_whisper(stt_library: str, model: str) -> None:
         "--language",
         "en",
         "--vad-filter",
+        *extra_args,
         stdin=PIPE,
         stdout=PIPE,
     )

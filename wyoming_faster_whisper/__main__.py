@@ -111,6 +111,12 @@ async def main() -> None:
         help="Set library to use for speech-to-text (may require extra dependencies)",
     )
     parser.add_argument(
+        "--sherpa-streaming",
+        action="store_true",
+        help="Use sherpa-onnx OnlineRecognizer for true streaming transcription "
+        "(sherpa only; requires a streaming model, e.g. a streaming zipformer)",
+    )
+    parser.add_argument(
         "--local-files-only",
         action="store_true",
         help="Don't check HuggingFace hub for updates every time",
@@ -218,6 +224,7 @@ async def main() -> None:
         initial_prompt=args.initial_prompt,
         vad_parameters=vad_parameters,
         whisper_task=args.whisper_task,
+        sherpa_streaming=args.sherpa_streaming,
     )
 
     # Load model

@@ -88,6 +88,14 @@ class ModelLoader:
         except ImportError:
             has_onnx_asr = False
             _LOGGER.debug("Onnx-ASR is NOT available")
+        try:
+            from .funasr_handler import FunASRTranscriber
+
+            has_funasr = True
+            _LOGGER.debug("FunASR is available")
+        except ImportError:
+            has_funasr = False
+            _LOGGER.debug("FunASR is NOT available")
 
         # Select speech-to-text library
         if stt_library == SttLibrary.AUTO:
@@ -107,6 +115,7 @@ class ModelLoader:
             ((stt_library == SttLibrary.TRANSFORMERS) and (not has_transformers))
             or ((stt_library == SttLibrary.SHERPA) and (not has_sherpa))
             or ((stt_library == SttLibrary.ONNX_ASR) and (not has_onnx_asr))
+            or ((stt_library == SttLibrary.FUNASR) and (not has_funasr))
         ):
             # Fall back to faster-whisper
             stt_library = SttLibrary.FASTER_WHISPER
@@ -168,6 +177,15 @@ class ModelLoader:
                     model,
                     cache_dir=self.download_dir,
                     local_files_only=self.local_files_only,
+                )
+            elif stt_library == SttLibrary.FUNASR:
+                from .funasr_handler import FunASRTranscriber  # noqa: F811
+
+                transcriber = FunASRTranscriber(
+                    model,
+                    cache_dir=self.download_dir,
+                    local_files_only=self.local_files_only,
+                    device=self.device,
                 )
             else:
                 transcriber = FasterWhisperTranscriber(
@@ -245,6 +263,9 @@ def guess_model(
 
     if stt_library == SttLibrary.ONNX_ASR:
         return "gigaam-v2-rnnt"
+
+    if stt_library == SttLibrary.FUNASR:
+        return "FunAudioLLM/SenseVoiceSmall"
 
     # faster-whisper
     if is_arm:

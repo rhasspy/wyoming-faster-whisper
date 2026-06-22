@@ -222,9 +222,7 @@ class SherpaStreamingSession(StreamingSession):
     def finish(self) -> str:
         # Feed trailing silence so the encoder can flush its final chunk;
         # otherwise the last word(s) of the utterance are cut off.
-        tail_padding = np.zeros(
-            int(_TAIL_PADDING_SECONDS * _RATE), dtype=np.float32
-        )
+        tail_padding = np.zeros(int(_TAIL_PADDING_SECONDS * _RATE), dtype=np.float32)
         self.stream.accept_waveform(_RATE, tail_padding)
 
         # Signal end of audio and flush any remaining frames.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.0
+
+- Add FunASR speech-to-text backend (`--stt-library funasr`) defaulting to `FunAudioLLM/SenseVoiceSmall` (`@LauraGPT`)
+  - Non-autoregressive and notably faster than Whisper; supports English, Chinese, Cantonese, Japanese, and Korean well
+  - Install with the `funasr` extra (`pip install '.[funasr]'`)
+
 ## 3.2.1
 
 - Fix streaming sherpa cutting off the end of utterances (add tail padding before flushing)

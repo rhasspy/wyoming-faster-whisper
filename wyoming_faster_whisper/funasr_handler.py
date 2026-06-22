@@ -1,11 +1,19 @@
 """Code for transcription using the FunASR library."""
 
+import contextlib
 import os
+import sys
 import wave
 from pathlib import Path
 from typing import Optional, Union
 
+# FunASR is imported at module scope (not lazily inside __init__) so that
+# importing this module raises ImportError when FunASR is absent. ModelLoader
+# relies on that to detect the backend and fall back to faster-whisper, matching
+# onnx_asr_handler/transformers_whisper.
 import numpy as np
+from funasr import AutoModel
+from funasr.utils.postprocess_utils import rich_transcription_postprocess
 
 from .const import Transcriber
 
@@ -28,18 +36,24 @@ class FunASRTranscriber(Transcriber):
         """Initialize model."""
         # FunASR (hub="hf") downloads via huggingface_hub; honor the cache dir.
         os.environ.setdefault("HF_HOME", str(Path(cache_dir).resolve()))
-
-        from funasr import AutoModel
-        from funasr.utils.postprocess_utils import rich_transcription_postprocess
+        if local_files_only:
+            # FunASR's AutoModel has no local_files_only flag; gate downloads
+            # via the huggingface_hub environment variable instead.
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
         self._postprocess = rich_transcription_postprocess
         self._is_sense_voice = "SenseVoice" in model_id
-        self.model = AutoModel(
-            model=model_id,
-            hub="hf",
-            device=device,
-            disable_update=True,
-        )
+
+        # FunASR prints a "funasr version: ..." banner to stdout when a model is
+        # built. With the stdio:// transport that line corrupts the Wyoming
+        # protocol, so redirect stdout to stderr while loading.
+        with contextlib.redirect_stdout(sys.stderr):
+            self.model = AutoModel(
+                model=model_id,
+                hub="hf",
+                device=device,
+                disable_update=True,
+            )
 
     def transcribe(
         self,
@@ -66,6 +80,7 @@ class FunASRTranscriber(Transcriber):
             lang = language if (language in _SENSE_VOICE_LANGUAGES) else "auto"
             gen_kwargs["language"] = lang
 
-        result = self.model.generate(**gen_kwargs)
+        with contextlib.redirect_stdout(sys.stderr):
+            result = self.model.generate(**gen_kwargs)
         text = result[0]["text"] if result else ""
         return self._postprocess(text).strip()

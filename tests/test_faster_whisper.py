@@ -23,12 +23,11 @@ from . import _LOCAL_DIR, _SAMPLES_PER_CHUNK, _START_TIMEOUT, _TRANSCRIBE_TIMEOU
         ("transformers", "openai/whisper-base.en", []),
         ("sherpa", "auto", []),
         ("sherpa", "auto", ["--sherpa-streaming"]),
+        ("funasr", "FunAudioLLM/SenseVoiceSmall", []),
     ],
 )
 @pytest.mark.asyncio
-async def test_faster_whisper(
-    stt_library: str, model: str, extra_args: list
-) -> None:
+async def test_faster_whisper(stt_library: str, model: str, extra_args: list) -> None:
     proc = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",

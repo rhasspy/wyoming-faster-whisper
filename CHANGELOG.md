@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.2.1
+
+- Fix streaming sherpa cutting off the end of utterances (add tail padding before flushing)
+- Default streaming sherpa to the Kroko 2025 zipformer models (mixed-case, punctuated, much better accuracy than the old LibriSpeech model); adds `de`/`es`/`fr` defaults
+- Use `--beam-size` for streaming sherpa decoding (beam search when > 1, greedy otherwise)
+
 ## 3.2.0
 
 - Fix transformers language

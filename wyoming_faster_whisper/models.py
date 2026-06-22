@@ -145,7 +145,10 @@ class ModelLoader:
                     from .sherpa_handler import SherpaStreamingTranscriber  # noqa: F811
 
                     transcriber = SherpaStreamingTranscriber(
-                        model, self.download_dir, cpu_threads=self.cpu_threads
+                        model,
+                        self.download_dir,
+                        cpu_threads=self.cpu_threads,
+                        beam_size=self.beam_size,
                     )
                 else:
                     from .sherpa_handler import SherpaTranscriber  # noqa: F811
@@ -213,16 +216,22 @@ def guess_model(
     """Automatically guess STT model id."""
     if stt_library == SttLibrary.SHERPA:
         if streaming:
-            # Best available streaming (OnlineRecognizer) model. The streaming
-            # zipformers are English-only, so warn for other languages.
-            if language not in (None, "en"):
-                _LOGGER.warning(
-                    "Streaming sherpa models are English-only; pass --model to "
-                    "use a streaming model for language '%s'",
-                    language,
-                )
+            # Best available streaming (OnlineRecognizer) model. The Kroko
+            # streaming zipformers produce mixed-case, punctuated output with
+            # much better accuracy than the older LibriSpeech models. They are
+            # per-language, so warn for languages we don't have a default for.
+            if language in (None, "en"):
+                return "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06"
 
-            return "sherpa-onnx-streaming-zipformer-en-2023-06-26"
+            if language in ("de", "es", "fr"):
+                return f"sherpa-onnx-streaming-zipformer-{language}-kroko-2025-08-06"
+
+            _LOGGER.warning(
+                "No default streaming sherpa model for language '%s'; pass "
+                "--model to choose one. Falling back to English.",
+                language,
+            )
+            return "sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06"
 
         if language == "en":
             return "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8"

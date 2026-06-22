@@ -18,6 +18,11 @@ _LOGGER = logging.getLogger(__name__)
 _RATE = 16000
 _URL_FORMAT = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/{model_id}.tar.bz2"
 
+# Trailing silence fed to a streaming model before input_finished() so the
+# encoder can flush its final chunk. Without this, the last word(s) of an
+# utterance are dropped. Matches sherpa-onnx's own decode-files examples.
+_TAIL_PADDING_SECONDS = 0.66
+
 
 def _ensure_model(model_id: str, cache_dir: Union[str, Path]) -> Path:
     """Download/extract a sherpa-onnx model if needed and return its directory."""
@@ -133,9 +138,17 @@ class SherpaStreamingTranscriber(Transcriber):
         model_id: str,
         cache_dir: Union[str, Path],
         cpu_threads: int = 4,
+        beam_size: int = 5,
     ) -> None:
         """Initialize model."""
         model_dir = _ensure_model(model_id, cache_dir)
+
+        # A beam size > 1 enables beam search, which is more accurate than the
+        # default greedy decoding at a small latency cost.
+        if beam_size > 1:
+            decoding_method = "modified_beam_search"
+        else:
+            decoding_method = "greedy_search"
 
         # Load model. Streaming zipformer file names are versioned, so locate
         # them by prefix instead of hard-coding.
@@ -146,6 +159,8 @@ class SherpaStreamingTranscriber(Transcriber):
             tokens=str(model_dir / "tokens.txt"),
             num_threads=cpu_threads,
             provider="cpu",
+            decoding_method=decoding_method,
+            max_active_paths=max(beam_size, 1),
         )
 
         # Prime model so that the first transcription will be fast
@@ -205,6 +220,13 @@ class SherpaStreamingSession(StreamingSession):
             self.recognizer.decode_stream(self.stream)
 
     def finish(self) -> str:
+        # Feed trailing silence so the encoder can flush its final chunk;
+        # otherwise the last word(s) of the utterance are cut off.
+        tail_padding = np.zeros(
+            int(_TAIL_PADDING_SECONDS * _RATE), dtype=np.float32
+        )
+        self.stream.accept_waveform(_RATE, tail_padding)
+
         # Signal end of audio and flush any remaining frames.
         self.stream.input_finished()
         while self.recognizer.is_ready(self.stream):

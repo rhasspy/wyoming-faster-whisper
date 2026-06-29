@@ -15,12 +15,9 @@ import numpy as np
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 
-from .const import Transcriber
+from .const import Transcriber, sense_voice_language
 
 _RATE = 16000
-
-# Languages SenseVoice can be told to decode explicitly; otherwise auto-detect.
-_SENSE_VOICE_LANGUAGES = {"auto", "zh", "en", "yue", "ja", "ko"}
 
 
 class FunASRTranscriber(Transcriber):
@@ -77,8 +74,7 @@ class FunASRTranscriber(Transcriber):
 
         gen_kwargs = {"input": audio, "cache": {}, "use_itn": True, "batch_size_s": 300}
         if self._is_sense_voice:
-            lang = language if (language in _SENSE_VOICE_LANGUAGES) else "auto"
-            gen_kwargs["language"] = lang
+            gen_kwargs["language"] = sense_voice_language(language) or "auto"
 
         with contextlib.redirect_stdout(sys.stderr):
             result = self.model.generate(**gen_kwargs)

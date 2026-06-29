@@ -7,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
-from .const import SttLibrary, Transcriber
+from .const import SttLibrary, Transcriber, sense_voice_language
 from .faster_whisper_handler import FasterWhisperTranscriber
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,7 +59,6 @@ class ModelLoader:
     async def load_transcriber(self, language: Optional[str] = None) -> Transcriber:
         """Load or get transcriber from cache for a language."""
         language = language or self.preferred_language
-        stt_library = self.preferred_stt_library
 
         # Check dependencies
         try:
@@ -98,28 +97,15 @@ class ModelLoader:
             _LOGGER.debug("FunASR is NOT available")
 
         # Select speech-to-text library
-        if stt_library == SttLibrary.AUTO:
-            # Default to faster-whisper
-            stt_library = SttLibrary.FASTER_WHISPER
-
-            if self.model is None:  # auto
-                if (language == "ru") and has_onnx_asr:
-                    # Prefer GigaAM via onnx-asr
-                    stt_library = SttLibrary.ONNX_ASR
-                elif (language == "en") and has_sherpa:
-                    # Prefer Parakeet via sherpa for English.
-                    # The v3 Parakeet model claims to auto detect other
-                    # languages, but it doesn't work.
-                    stt_library = SttLibrary.SHERPA
-        elif (
-            ((stt_library == SttLibrary.TRANSFORMERS) and (not has_transformers))
-            or ((stt_library == SttLibrary.SHERPA) and (not has_sherpa))
-            or ((stt_library == SttLibrary.ONNX_ASR) and (not has_onnx_asr))
-            or ((stt_library == SttLibrary.FUNASR) and (not has_funasr))
-        ):
-            # Fall back to faster-whisper
-            stt_library = SttLibrary.FASTER_WHISPER
-            _LOGGER.debug("Falling back to faster-whisper (missing dependencies)")
+        stt_library = guess_stt_library(
+            self.preferred_stt_library,
+            self.model,
+            language,
+            has_transformers=has_transformers,
+            has_sherpa=has_sherpa,
+            has_onnx_asr=has_onnx_asr,
+            has_funasr=has_funasr,
+        )
 
         # Streaming is only supported by the sherpa backend.
         streaming = self.sherpa_streaming and (stt_library == SttLibrary.SHERPA)
@@ -223,6 +209,58 @@ class ModelLoader:
         _LOGGER.debug("Transcribed audio: %s", text)
 
         return text
+
+
+def guess_stt_library(
+    preferred_stt_library: SttLibrary,
+    model: Optional[str],
+    language: Optional[str],
+    *,
+    has_transformers: bool,
+    has_sherpa: bool,
+    has_onnx_asr: bool,
+    has_funasr: bool,
+) -> SttLibrary:
+    """Resolve which speech-to-text library to use.
+
+    When the preferred library is AUTO and no model is forced, pick the best
+    available specialized backend for the language; otherwise faster-whisper.
+    A non-AUTO library falls back to faster-whisper when its dependency is
+    missing.
+    """
+    if preferred_stt_library == SttLibrary.AUTO:
+        if model is None:  # auto-select a per-language backend
+            if (language == "ru") and has_onnx_asr:
+                # Prefer GigaAM via onnx-asr
+                return SttLibrary.ONNX_ASR
+
+            if (language == "en") and has_sherpa:
+                # Prefer Parakeet via sherpa for English. The v3 Parakeet model
+                # claims to auto detect other languages, but it doesn't work.
+                return SttLibrary.SHERPA
+
+            if (
+                sense_voice_language(language) in ("zh", "yue", "ja", "ko")
+            ) and has_funasr:
+                # Prefer SenseVoice via FunASR for Chinese, Cantonese, Japanese,
+                # and Korean (incl. locale codes like "zh-CN").
+                return SttLibrary.FUNASR
+
+        # Default to faster-whisper
+        return SttLibrary.FASTER_WHISPER
+
+    # Explicit library: fall back to faster-whisper if its dependency is absent.
+    available = {
+        SttLibrary.TRANSFORMERS: has_transformers,
+        SttLibrary.SHERPA: has_sherpa,
+        SttLibrary.ONNX_ASR: has_onnx_asr,
+        SttLibrary.FUNASR: has_funasr,
+    }
+    if not available.get(preferred_stt_library, True):
+        _LOGGER.debug("Falling back to faster-whisper (missing dependencies)")
+        return SttLibrary.FASTER_WHISPER
+
+    return preferred_stt_library
 
 
 def guess_model(

@@ -20,6 +20,29 @@ class SttLibrary(str, Enum):
 AUTO_LANGUAGE = "auto"
 AUTO_MODEL = "auto"
 
+# SenseVoice (FunASR) can be told to decode these languages explicitly;
+# otherwise it auto-detects. Maps the locale-style codes that Home Assistant /
+# intent-sentences use (e.g. "zh-CN") onto the base SenseVoice language.
+_SENSE_VOICE_LANGUAGES = {
+    "zh": "zh",
+    "zh-cn": "zh",
+    "zh-tw": "zh",
+    "zh-hk": "yue",  # Hong Kong audio is typically Cantonese
+    "yue": "yue",
+    "ja": "ja",
+    "ko": "ko",
+    "en": "en",
+}
+
+
+def sense_voice_language(language: Optional[str]) -> Optional[str]:
+    """Normalize a language code to a SenseVoice language, or None if unsupported."""
+    if not language:
+        return None
+
+    return _SENSE_VOICE_LANGUAGES.get(language.lower())
+
+
 PARAKEET_LANGUAGES = {
     "bg",
     "hr",

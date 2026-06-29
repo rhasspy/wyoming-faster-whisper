@@ -43,6 +43,10 @@ _SUPPORTED = [
     ("ko", "ko", "거실 불 켜줘."),
     # SenseVoice emits Cantonese in simplified Han (keeps the colloquial 嘅).
     ("yue", "yue", "开客厅嘅灯。"),
+    # Locale-style codes (as sent by Home Assistant / intent-sentences) are
+    # normalized to the base SenseVoice language before decoding.
+    ("zh-CN", "zh", "打开客厅的灯。"),
+    ("zh-HK", "yue", "开客厅嘅灯。"),  # Hong Kong -> Cantonese
 ]
 
 # Languages SenseVoiceSmall does not support; transcription is garbled. Kept as

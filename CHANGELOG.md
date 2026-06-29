@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.1
+
+- Ensure zh/yue/ja/ko default to FunASR
+
 ## 3.3.0
 
 - Add FunASR speech-to-text backend (`--stt-library funasr`) defaulting to `FunAudioLLM/SenseVoiceSmall` (`@LauraGPT`)

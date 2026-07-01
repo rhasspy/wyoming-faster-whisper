@@ -14,6 +14,7 @@ parser.add_argument(
     "--transformers", action="store_true", help="Install transformers requirements"
 )
 parser.add_argument("--sherpa", action="store_true", help="Install sherpa requirements")
+parser.add_argument("--funasr", action="store_true", help="Install funasr requirements")
 args = parser.parse_args()
 
 # Create virtual environment
@@ -35,6 +36,9 @@ if args.transformers:
 
 if args.sherpa:
     extras.append("sherpa")
+
+if args.funasr:
+    extras.append("funasr")
 
 extras_str = ""
 if extras:

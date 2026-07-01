@@ -24,7 +24,7 @@ jobs:
 
       - name: Install
         run: |
-          script/setup --dev --transformers --sherpa
+          script/setup --dev --transformers
 
       - name: Run tests
         run: script/test

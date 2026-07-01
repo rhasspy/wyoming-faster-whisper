@@ -1,6 +1,7 @@
 """Tests for faster-whisper."""
 
 import asyncio
+import importlib.util
 import re
 import sys
 import wave
@@ -16,15 +17,29 @@ from wyoming.info import Describe, Info
 from . import _LOCAL_DIR, _SAMPLES_PER_CHUNK, _START_TIMEOUT, _TRANSCRIBE_TIMEOUT, _DIR
 
 
+def _needs(module: str):
+    """Skip a param when the backend's package isn't installed (e.g. funasr in CI)."""
+    return pytest.mark.skipif(
+        importlib.util.find_spec(module) is None,
+        reason=f"{module} not installed",
+    )
+
+
 @pytest.mark.parametrize(
     ("stt_library", "model", "extra_args"),
     [
         ("faster-whisper", "base-int8", []),
         ("faster-whisper", "base-int8", ["--no-vad-clip"]),
-        ("transformers", "openai/whisper-base.en", []),
-        ("sherpa", "auto", []),
-        ("sherpa", "auto", ["--sherpa-streaming"]),
-        ("funasr", "FunAudioLLM/SenseVoiceSmall", []),
+        pytest.param(
+            "transformers", "openai/whisper-base.en", [], marks=_needs("transformers")
+        ),
+        pytest.param("sherpa", "auto", [], marks=_needs("sherpa_onnx")),
+        pytest.param(
+            "sherpa", "auto", ["--sherpa-streaming"], marks=_needs("sherpa_onnx")
+        ),
+        pytest.param(
+            "funasr", "FunAudioLLM/SenseVoiceSmall", [], marks=_needs("funasr")
+        ),
     ],
 )
 @pytest.mark.asyncio

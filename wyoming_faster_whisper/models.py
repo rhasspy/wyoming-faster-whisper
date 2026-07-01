@@ -33,7 +33,7 @@ class ModelLoader:
         vad_parameters: Optional[Dict[str, Any]],
         whisper_task: Optional[str] = None,
         sherpa_streaming: bool = False,
-        vad_clip: bool = False,
+        vad_clip: bool = True,
         vad_clip_threshold: float = 0.5,
         vad_clip_pad_ms: int = 400,
     ) -> None:

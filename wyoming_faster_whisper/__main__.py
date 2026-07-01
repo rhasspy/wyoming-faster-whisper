@@ -106,8 +106,9 @@ async def main() -> None:
     )
     parser.add_argument(
         "--vad-clip",
-        action="store_true",
-        help="Use pysilero-vad to clip leading/trailing silence before transcription (default: false, faster-whisper only)",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Use pysilero-vad to clip leading/trailing silence before transcription (default: enabled; use --no-vad-clip to disable, faster-whisper only)",
     )
     parser.add_argument(
         "--vad-clip-threshold",

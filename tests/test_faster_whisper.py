@@ -20,6 +20,7 @@ from . import _LOCAL_DIR, _SAMPLES_PER_CHUNK, _START_TIMEOUT, _TRANSCRIBE_TIMEOU
     ("stt_library", "model", "extra_args"),
     [
         ("faster-whisper", "base-int8", []),
+        ("faster-whisper", "base-int8", ["--vad-clip"]),
         ("transformers", "openai/whisper-base.en", []),
         ("sherpa", "auto", []),
         ("sherpa", "auto", ["--sherpa-streaming"]),

@@ -33,6 +33,9 @@ class ModelLoader:
         vad_parameters: Optional[Dict[str, Any]],
         whisper_task: Optional[str] = None,
         sherpa_streaming: bool = False,
+        vad_clip: bool = False,
+        vad_clip_threshold: float = 0.5,
+        vad_clip_pad_ms: int = 400,
     ) -> None:
         self.preferred_stt_library = preferred_stt_library
         self.preferred_language = preferred_language
@@ -50,6 +53,9 @@ class ModelLoader:
         self.initial_prompt = initial_prompt
         self.vad_parameters = vad_parameters
         self.whisper_task = whisper_task
+        self.vad_clip = vad_clip
+        self.vad_clip_threshold = vad_clip_threshold
+        self.vad_clip_pad_ms = vad_clip_pad_ms
 
         self._transcriber: Dict[TRANSCRIBER_KEY, Transcriber] = {}
         self._transcriber_lock: Dict[TRANSCRIBER_KEY, asyncio.Lock] = defaultdict(
@@ -185,6 +191,9 @@ class ModelLoader:
                     cpu_threads=self.cpu_threads,
                     vad_parameters=self.vad_parameters,
                     task=self.whisper_task,
+                    vad_clip=self.vad_clip,
+                    vad_clip_threshold=self.vad_clip_threshold,
+                    vad_clip_pad_ms=self.vad_clip_pad_ms,
                 )
 
             self._transcriber[key] = transcriber

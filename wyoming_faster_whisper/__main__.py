@@ -105,6 +105,24 @@ async def main() -> None:
         help="VAD minimum silence duration in ms to split (default: 2000, faster-whisper only)",
     )
     parser.add_argument(
+        "--vad-clip",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Use pysilero-vad to clip leading/trailing silence before transcription (default: enabled; use --no-vad-clip to disable, faster-whisper only)",
+    )
+    parser.add_argument(
+        "--vad-clip-threshold",
+        type=float,
+        default=0.5,
+        help="Speech probability threshold for --vad-clip (default: 0.5)",
+    )
+    parser.add_argument(
+        "--vad-clip-pad-ms",
+        type=int,
+        default=400,
+        help="Context kept around speech for --vad-clip in ms (default: 400)",
+    )
+    parser.add_argument(
         "--stt-library",
         choices=[lib.value for lib in SttLibrary],
         default=SttLibrary.AUTO,
@@ -225,6 +243,9 @@ async def main() -> None:
         vad_parameters=vad_parameters,
         whisper_task=args.whisper_task,
         sherpa_streaming=args.sherpa_streaming,
+        vad_clip=args.vad_clip,
+        vad_clip_threshold=args.vad_clip_threshold,
+        vad_clip_pad_ms=args.vad_clip_pad_ms,
     )
 
     # Load model

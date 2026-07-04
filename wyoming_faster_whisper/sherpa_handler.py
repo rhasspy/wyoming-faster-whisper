@@ -212,7 +212,6 @@ class SherpaStreamingSession(StreamingSession):
         self.stream = recognizer.create_stream()
         self._leftover: bytes = b""
 
-
     def accept_chunk(self, audio_bytes: bytes) -> None:
         audio_bytes = self._leftover + audio_bytes
 

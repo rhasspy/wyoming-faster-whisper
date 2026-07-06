@@ -210,8 +210,17 @@ class SherpaStreamingSession(StreamingSession):
     def __init__(self, recognizer: "so.OnlineRecognizer") -> None:
         self.recognizer = recognizer
         self.stream = recognizer.create_stream()
+        self._leftover: bytes = b""
 
     def accept_chunk(self, audio_bytes: bytes) -> None:
+        audio_bytes = self._leftover + audio_bytes
+
+        if len(audio_bytes) % 2:
+            self._leftover = audio_bytes[-1:]
+            audio_bytes = audio_bytes[:-1]
+        else:
+            self._leftover = b""
+
         if not audio_bytes:
             return
 
@@ -220,6 +229,14 @@ class SherpaStreamingSession(StreamingSession):
             self.recognizer.decode_stream(self.stream)
 
     def finish(self) -> str:
+        # Carry over leftover bytes from the last chunk, if any. This is needed because
+        # the model expects a multiple of 2 bytes (16-bit PCM) for each chunk
+        if self._leftover:
+            self.stream.accept_waveform(
+                _RATE, _bytes_to_samples(self._leftover + b"\x00")
+            )
+            self._leftover = b""
+
         # Feed trailing silence so the encoder can flush its final chunk;
         # otherwise the last word(s) of the utterance are cut off.
         tail_padding = np.zeros(int(_TAIL_PADDING_SECONDS * _RATE), dtype=np.float32)

@@ -29,16 +29,25 @@ def _needs(module: str):
     ("stt_library", "model", "extra_args"),
     [
         ("faster-whisper", "base-int8", []),
-        ("faster-whisper", "base-int8", ["--no-vad-clip"]),
+        ("faster-whisper", "base-int8", ["--vad-clip"]),
         pytest.param(
             "transformers", "openai/whisper-base.en", [], marks=_needs("transformers")
         ),
         pytest.param("sherpa", "auto", [], marks=_needs("sherpa_onnx")),
+        # --vad-clip is backend-agnostic (clips the WAV before dispatch), so it
+        # must work for non-faster-whisper batch backends too.
+        pytest.param("sherpa", "auto", ["--vad-clip"], marks=_needs("sherpa_onnx")),
         pytest.param(
             "sherpa", "auto", ["--sherpa-streaming"], marks=_needs("sherpa_onnx")
         ),
         pytest.param(
             "funasr", "FunAudioLLM/SenseVoiceSmall", [], marks=_needs("funasr")
+        ),
+        pytest.param(
+            "funasr",
+            "FunAudioLLM/SenseVoiceSmall",
+            ["--vad-clip"],
+            marks=_needs("funasr"),
         ),
     ],
 )

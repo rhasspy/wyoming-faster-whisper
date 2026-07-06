@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.0
+
+- Disable VAD by default (use `--vad-clip` to enable)
+- Apply `--vad-clip` to all batch backends (not just faster-whisper); clipping happens on the WAV before dispatch. Mainly a latency win for length-proportional backends like sherpa/FunASR on silence-heavy audio; streaming backends are unaffected
+- Bump `pysilero-vad` to use GGML version
+
 ## 3.3.1
 
 - Ensure zh/yue/ja/ko default to FunASR

@@ -5,7 +5,9 @@ and shortens the audio the model has to process. Audio is 16 kHz 16-bit mono PCM
 """
 
 import logging
-from typing import Optional
+import wave
+from pathlib import Path
+from typing import Optional, Union
 
 from pysilero_vad import SileroVoiceActivityDetector
 
@@ -49,3 +51,42 @@ def clip_to_speech(
     start = max(0, speech[0] - pad_chunks)
     end = min(len(probs), speech[-1] + 1 + pad_chunks)
     return audio[start * chunk_bytes : end * chunk_bytes]
+
+
+def clip_wav_to_speech(
+    src_path: Union[str, Path],
+    dst_path: Union[str, Path],
+    threshold: float = 0.5,
+    pad_ms: int = 400,
+) -> bool:
+    """Clip a 16 kHz 16-bit mono WAV to its speech region, writing to dst_path.
+
+    Returns True if speech was found and dst_path now holds the clipped audio,
+    or False if the WAV couldn't be read or no speech was detected (in which
+    case dst_path is not written and callers should use the original audio).
+    """
+    try:
+        with wave.open(str(src_path), "rb") as wav_file:
+            audio = wav_file.readframes(wav_file.getnframes())
+    except (wave.Error, OSError) as err:
+        _LOGGER.warning("VAD clip: could not read %s: %s", src_path, err)
+        return False
+
+    clipped = clip_to_speech(audio, threshold=threshold, pad_ms=pad_ms)
+    if not clipped:
+        _LOGGER.debug("VAD clip: no speech detected, using full audio")
+        return False
+
+    clipped_file: wave.Wave_write = wave.open(str(dst_path), "wb")
+    with clipped_file:
+        clipped_file.setframerate(RATE)
+        clipped_file.setsampwidth(WIDTH)
+        clipped_file.setnchannels(1)
+        clipped_file.writeframes(clipped)
+
+    _LOGGER.debug(
+        "VAD clip: %d ms -> %d ms",
+        len(audio) // WIDTH * 1000 // RATE,
+        len(clipped) // WIDTH * 1000 // RATE,
+    )
+    return True

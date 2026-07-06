@@ -15,6 +15,7 @@ from wyoming.server import AsyncEventHandler
 
 from .const import StreamingSession, Transcriber
 from .models import ModelLoader
+from .vad import clip_wav_to_speech
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class DispatchEventHandler(AsyncEventHandler):
 
         self._wav_dir = tempfile.TemporaryDirectory()
         self._wav_path = os.path.join(self._wav_dir.name, "speech.wav")
+        self._clipped_wav_path = os.path.join(self._wav_dir.name, "clipped.wav")
         self._wav_file: Optional[wave.Wave_write] = None
 
         self._audio_converter = AudioChunkConverter(rate=16000, width=2, channels=1)
@@ -119,10 +121,24 @@ class DispatchEventHandler(AsyncEventHandler):
                 self._wav_file.close()
                 self._wav_file = None
 
+                # Optionally clip leading/trailing silence before transcription.
+                # This is backend-agnostic (operates on the WAV), so it applies
+                # to every batch transcriber, not just faster-whisper. Streaming
+                # transcribers never reach this path.
+                wav_path = self._wav_path
+                if self._loader.vad_clip and await asyncio.to_thread(
+                    clip_wav_to_speech,
+                    self._wav_path,
+                    self._clipped_wav_path,
+                    self._loader.vad_clip_threshold,
+                    self._loader.vad_clip_pad_ms,
+                ):
+                    wav_path = self._clipped_wav_path
+
                 # Do transcription in a separate thread
                 text = await asyncio.to_thread(
                     self._transcriber.transcribe,
-                    self._wav_path,
+                    wav_path,
                     self._language,
                     beam_size=self._loader.beam_size,
                     initial_prompt=self._loader.initial_prompt,

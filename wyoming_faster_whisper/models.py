@@ -33,7 +33,7 @@ class ModelLoader:
         vad_parameters: Optional[Dict[str, Any]],
         whisper_task: Optional[str] = None,
         sherpa_streaming: bool = False,
-        vad_clip: bool = True,
+        vad_clip: bool = False,
         vad_clip_threshold: float = 0.5,
         vad_clip_pad_ms: int = 400,
     ) -> None:
@@ -191,9 +191,6 @@ class ModelLoader:
                     cpu_threads=self.cpu_threads,
                     vad_parameters=self.vad_parameters,
                     task=self.whisper_task,
-                    vad_clip=self.vad_clip,
-                    vad_clip_threshold=self.vad_clip_threshold,
-                    vad_clip_pad_ms=self.vad_clip_pad_ms,
                 )
 
             self._transcriber[key] = transcriber

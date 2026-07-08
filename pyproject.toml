@@ -24,7 +24,7 @@ classifiers = [
 dependencies = [
     "wyoming>=1.8,<2",
     "faster-whisper>=1.2.1,<2",
-    "pysilero-vad>=3,<4",
+    "pysilero-vad>=3.4.0,<4",
 ]
 
 [project.urls]

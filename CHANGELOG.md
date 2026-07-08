@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.4.1
+
+- Use `pysilero-vad>=3.4.0`
+
 ## 3.4.0
 
 - Disable VAD by default (use `--vad-clip` to enable)

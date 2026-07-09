@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.5.0
+
+- Bump torch to avoid regression: https://github.com/pytorch/pytorch/issues/146792
+- Use `find_spec` to avoid importing modules for backend check
+
 ## 3.4.1
 
 - Use `pysilero-vad>=3.4.0`

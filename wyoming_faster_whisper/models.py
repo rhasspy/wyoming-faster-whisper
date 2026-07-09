@@ -1,6 +1,7 @@
 """Logic for model selection, loading, and transcription."""
 
 import asyncio
+import importlib.util
 import logging
 import platform
 from collections import defaultdict
@@ -13,6 +14,21 @@ from .faster_whisper_handler import FasterWhisperTranscriber
 _LOGGER = logging.getLogger(__name__)
 
 TRANSCRIBER_KEY = Tuple[SttLibrary, str, bool]  # (library, model id, streaming)
+
+
+def _module_available(name: str) -> bool:
+    """Report whether a module is installed without importing it.
+
+    Importing a backend pulls in its native libraries, some of which abort at
+    import time on certain CPUs (e.g. torch's LSE atomics raise SIGILL on the
+    ARMv8.0 Cortex-A72 in the Raspberry Pi 4). find_spec only locates the module,
+    so we can detect availability without paying that cost or risking the crash.
+    """
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        # A parent package failed to import, or the name is malformed.
+        return False
 
 
 class ModelLoader:
@@ -66,41 +82,26 @@ class ModelLoader:
         """Load or get transcriber from cache for a language."""
         language = language or self.preferred_language
 
-        # Check dependencies
-        try:
-            from .sherpa_handler import SherpaTranscriber
-
-            has_sherpa = True
-            _LOGGER.debug("Sherpa is available")
-        except ImportError:
-            has_sherpa = False
-            _LOGGER.debug("Sherpa is NOT available")
-
-        try:
-            from .transformers_whisper import TransformersTranscriber
-
-            has_transformers = True
-            _LOGGER.debug("Transformers library is available")
-        except ImportError:
-            has_transformers = False
-            _LOGGER.debug("Transformers library is NOT available")
-
-        try:
-            from .onnx_asr_handler import OnnxAsrTranscriber
-
-            has_onnx_asr = True
-            _LOGGER.debug("Onnx-ASR is available")
-        except ImportError:
-            has_onnx_asr = False
-            _LOGGER.debug("Onnx-ASR is NOT available")
-        try:
-            from .funasr_handler import FunASRTranscriber
-
-            has_funasr = True
-            _LOGGER.debug("FunASR is available")
-        except ImportError:
-            has_funasr = False
-            _LOGGER.debug("FunASR is NOT available")
+        # Detect which backends are installed *without* importing them. Importing
+        # a backend loads its native libraries (sherpa-onnx, torch, onnxruntime,
+        # funasr); some of those abort the whole process at import time on certain
+        # CPUs (e.g. torch's LSE atomics SIGILL on the Raspberry Pi 4's ARMv8.0
+        # Cortex-A72). We only want to pay that cost - and take that risk - for the
+        # single backend actually selected below, so probe with find_spec here and
+        # defer the real import to the branch that instantiates the transcriber.
+        has_sherpa = _module_available("sherpa_onnx")
+        has_transformers = _module_available("transformers") and _module_available(
+            "torch"
+        )
+        has_onnx_asr = _module_available("onnx_asr")
+        has_funasr = _module_available("funasr")
+        _LOGGER.debug(
+            "Backends available: sherpa=%s transformers=%s onnx_asr=%s funasr=%s",
+            has_sherpa,
+            has_transformers,
+            has_onnx_asr,
+            has_funasr,
+        )
 
         # Select speech-to-text library
         stt_library = guess_stt_library(
